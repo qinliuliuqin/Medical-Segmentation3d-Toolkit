@@ -11,7 +11,7 @@ class BinaryDiceLoss(nn.Module):
 
         # convert probability to binary label using maximum probability
         input_pred, input_label = input.max(1)
-        input_pred *= input_label
+        input_pred *= input_label.float()
 
         # convert to floats
         input_pred = input_pred.float()
