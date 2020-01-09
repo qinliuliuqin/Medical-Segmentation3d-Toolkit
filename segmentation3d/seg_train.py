@@ -93,12 +93,6 @@ def train(config_file):
 
         crops, masks, frames, filenames = data_iter.next()
 
-        # save training crops for visualization
-        if cfg.debug.save_inputs:
-            batch_size = crops.size(0)
-            save_intermediate_results(list(range(batch_size)), crops, masks, None, frames, filenames,
-                                      cfg.general.save_dir)
-
         if cfg.general.num_gpus > 0:
             crops, masks = crops.cuda(), masks.cuda()
 
@@ -112,6 +106,12 @@ def train(config_file):
 
         # update weights
         opt.step()
+
+        # save training crops for visualization
+        if cfg.debug.save_inputs:
+            batch_size = crops.size(0)
+            save_intermediate_results(list(range(batch_size)), crops, masks, None, frames, filenames,
+                                      os.path.join(cfg.general.save_dir, 'batch_{}'.format(i)))
 
         epoch_idx = batch_idx * cfg.train.batchsize // len(dataset)
         batch_idx += 1

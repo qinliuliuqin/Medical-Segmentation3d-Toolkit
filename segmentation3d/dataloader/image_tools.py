@@ -4,6 +4,40 @@ import SimpleITK as sitk
 import torch
 
 
+type_conversion_from_numpy_to_sitk = {
+    np.int8: sitk.sitkInt8,
+    np.int16: sitk.sitkInt16,
+    np.int32: sitk.sitkInt32,
+    np.int: sitk.sitkInt32,
+    np.int64: sitk.sitkInt64,
+    np.uint8: sitk.sitkUInt8,
+    np.uint16: sitk.sitkUInt16,
+    np.uint32: sitk.sitkUInt32,
+    np.uint64: sitk.sitkUInt64,
+    np.uint: sitk.sitkUInt32,
+    np.float32: sitk.sitkFloat32,
+    np.float64: sitk.sitkFloat64,
+    np.float: sitk.sitkFloat32
+}
+
+
+def set_image_frame(image, frame):
+    """ Set the frame of the SimpleITK image
+    :param image: the input SimpleITK image
+    :param frame: the frame of image. It is a numpy array with 15 elements, with the first three elements representing
+                  the spacing, the next three elements representing the origin, and the rest representing the direction.
+    """
+    assert isinstance(image, sitk.Image)
+
+    spacing = frame[:3].astype(np.double)
+    origin = frame[3:6].astype(np.double)
+    direction = frame[6:15].astype(np.double)
+
+    image.SetSpacing(spacing)
+    image.SetOrigin(origin)
+    image.SetDirection(direction)
+
+
 def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, out_folder):
     """ save intermediate results to training folder
 
@@ -19,6 +53,29 @@ def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, o
     if not os.path.isdir(out_folder):
         os.makedirs(out_folder)
 
+    for i in idxs:
+
+        case_out_folder = os.path.join(out_folder, file_names[i])
+        if not os.path.isdir(case_out_folder):
+            os.makedirs(case_out_folder)
+
+        if crops is not None:
+            images = convert_tensor_to_image(crops[i], dtype=np.float32)
+            frame = frames[i].numpy()
+            for modality_idx, image in enumerate(images):
+                set_image_frame(image, frame)
+                sitk.WriteImage(image, os.path.join(case_out_folder, 'batch_{}_crop_{}.nii.gz'.format(i, modality_idx)))
+
+        if masks is not None:
+            mask = convert_tensor_to_image(masks[i, 0], dtype=np.int8)
+            set_image_frame(mask, frames[i].numpy())
+            sitk.WriteImage(mask, os.path.join(case_out_folder, 'batch_{}_mask.nii.gz'.format(i)))
+
+        if outputs is not None:
+            output = convert_tensor_to_image(outputs[i, 0].data, dtype=np.float32)
+            set_image_frame(output, frames[i].numpy())
+            sitk.WriteImage(output, os.path.join(case_out_folder, 'batch_{}_output.nii.gz'.format(i)))
+
 
 def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_method):
     """
@@ -27,7 +84,7 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     coordinate system with the given volume.
 
     :param image: The given volume to be cropped.
-    :param cropping_center: The center voxel of the cropped patch in the coordinate system of the given volume.
+    :param cropping_center: The center of the cropped patch in the world coordinate system of the given volume.
     :param cropping_size: The size of the cropped patch.
     :param cropping_spacing: The spacing of the cropped patch.
     :param interp_method: The interpolation method, only support 'NN' and 'Linear'.
@@ -42,15 +99,13 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     cropping_size = [int(cropping_size[idx]) for idx in range(3)]
     cropping_spacing = [float(cropping_spacing[idx]) for idx in range(3)]
 
-    cropping_start_point_voxel = [cropping_center[idx] for idx in range(3)]
+    cropping_start_point_voxel = list(image.TransformPhysicalPointToIndex(cropping_center))
     for idx in range(3):
         cropping_start_point_voxel[idx] -= int(cropping_size[idx] * cropping_spacing[idx] / spacing[idx]) // 2
     cropping_start_point_world = image.TransformIndexToPhysicalPoint(cropping_start_point_voxel)
 
     cropping_origin = cropping_start_point_world
     cropping_direction = direction
-
-    transform = sitk.Transform(3, sitk.sitkIdentity)
 
     if interp_method == 'LINEAR':
         interp_method = sitk.sitkLinear
@@ -59,6 +114,7 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     else:
         raise ValueError('Unsupported interpolation type.')
 
+    transform = sitk.Transform(3, sitk.sitkIdentity)
     outimage = sitk.Resample(image, cropping_size, transform, interp_method, cropping_origin, cropping_spacing,
                              cropping_direction)
 
@@ -99,39 +155,36 @@ def convert_image_to_tensor(image):
 
 
 def convert_tensor_to_image(tensor, dtype):
-    pass
-    # """ convert tensor to SimpleITK image object """
-    # assert isinstance(tensor, torch.Tensor), 'input must be a tensor'
-    #
-    # data = tensor.cpu().numpy()
-    #
-    # if tensor.dim() == 3:
-    #     # single channel 3d image volume
-    #     image = sitk.Image()
-    #     if dtype is None:
-    #         image.from_numpy(data, dtype=data.dtype)
-    #     else:
-    #         image.from_numpy(data, dtype=dtype)
-    #
-    # elif tensor.dim() == 4:
-    #     # multi-channel 3d image volume
-    #     image = []
-    #     for i in range(data.shape[0]):
-    #         tmp = Image3d()
-    #         if dtype is None:
-    #             tmp.from_numpy(data[i], dtype=data.dtype)
-    #         else:
-    #             tmp.from_numpy(data[i], dtype=dtype)
-    #         image.append(tmp)
-    #
-    # else:
-    #     raise ValueError('ToImage() only supports 3-dimsional or 4-dimensional image volume')
-    #
-    # return image
+    """ convert tensor to SimpleITK image object """
+    assert isinstance(tensor, torch.Tensor), 'input must be a tensor'
+
+    data = tensor.cpu().numpy()
+
+    if tensor.dim() == 3:
+        # single channel 3d image volume
+        image = sitk.GetImageFromArray(data)
+
+        if dtype is not None and dtype in type_conversion_from_numpy_to_sitk.keys():
+            sitk_type = type_conversion_from_numpy_to_sitk[dtype]
+            image = sitk.Cast(image, sitk_type)
+
+    elif tensor.dim() == 4:
+        # multi-channel 3d image volume
+        image = []
+        for i in range(data.shape[0]):
+            tmp = sitk.GetImageFromArray(data[i])
+
+            if dtype is not None and dtype in type_conversion_from_numpy_to_sitk.keys():
+                sitk_type = type_conversion_from_numpy_to_sitk[dtype]
+                tmp = sitk.Cast(tmp, sitk_type)
+            image.append(tmp)
+    else:
+        raise ValueError('Only supports 3-dimsional or 4-dimensional image volume')
+
+    return image
 
 
-if __name__ == '__main__':
-
+def test_crop_image():
     image_path = '/home/qinliu/projects/dental/case_67_cbct_patient/org.mha'
     image = sitk.ReadImage(image_path)
 
@@ -143,3 +196,16 @@ if __name__ == '__main__':
 
     save_path = '/home/qinliu/cropped_image.mha'
     sitk.WriteImage(cropped_image, save_path, True)
+
+
+def test_convert_tensor_to_image():
+    tensor = torch.randn(128, 128, 128)
+    image = convert_tensor_to_image(tensor, dtype=np.int)
+
+    save_path = '/home/qinliu/random_image.mha'
+    sitk.WriteImage(image, save_path, True)
+
+
+if __name__ == '__main__':
+
+    test_convert_tensor_to_image()

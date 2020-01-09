@@ -153,7 +153,11 @@ class SegmentationDataset(Dataset):
         seg = set_labels_outside_to_zero(seg, 1, self.num_classes - 1)
 
         # image frame
-        frame = {'spacing': seg.GetSpacing(), 'origin': seg.GetOrigin(), 'direction': seg.GetDirection()}
+        frame = []
+        frame.extend(list(seg.GetSpacing()))
+        frame.extend(list(seg.GetOrigin()))
+        frame.extend(list(seg.GetDirection()))
+        frame = np.array(frame, dtype=np.float32)
 
         # convert to tensors
         im = convert_image_to_tensor(images)
