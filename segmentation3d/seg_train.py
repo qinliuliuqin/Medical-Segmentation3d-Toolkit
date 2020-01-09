@@ -138,10 +138,12 @@ def main():
 
     long_description = "Training engine for 3d medical image segmentation"
     parser = argparse.ArgumentParser(description=long_description)
+
     parser.add_argument('-i', '--input',
                         default='./config/config.py',
                         help='configure file for medical image segmentation training.')
     args = parser.parse_args()
+
     train(args.input)
 
 
