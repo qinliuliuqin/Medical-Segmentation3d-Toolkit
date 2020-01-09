@@ -4,6 +4,7 @@ import os
 import shutil
 import time
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import importlib
@@ -62,6 +63,10 @@ def train(config_file):
     net = net_module.SegmentationNet(dataset.num_modality(), cfg.dataset.num_classes)
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
+
+    if cfg.general.num_gpus > 0:
+        net = nn.parallel.DataParallel(net, device_ids=list(range(cfg.general.num_gpus)))
+        net = net.cuda()
 
     assert np.all(np.array(cfg.dataset.crop_size) % max_stride == 0), 'crop size not divisible by max stride'
 
@@ -135,6 +140,8 @@ def train(config_file):
 
 
 def main():
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0, 3'
 
     long_description = "Training engine for 3d medical image segmentation"
     parser = argparse.ArgumentParser(description=long_description)
