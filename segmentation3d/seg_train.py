@@ -3,9 +3,11 @@ import numpy as np
 import os
 import shutil
 import time
+import torch
 import torch.optim as optim
 from torch.utils.data import DataLoader
 import importlib
+from tensorboardX import SummaryWriter
 
 from segmentation3d.dataloader.dataset import SegmentationDataset
 from segmentation3d.dataloader.sampler import EpochConcateSampler
@@ -33,6 +35,12 @@ def train(config_file):
     # enable logging
     log_file = os.path.join(cfg.general.save_dir, 'train_log.txt')
     logger = setup_logger(log_file, 'seg3d')
+
+    # control randomness during training
+    np.random.seed(cfg.general.seed)
+    torch.manual_seed(cfg.general.seed)
+    if cfg.general.num_gpus > 0:
+        torch.cuda.manual_seed(cfg.general.seed)
 
     # dataset
     dataset = SegmentationDataset(
@@ -72,9 +80,12 @@ def train(config_file):
         # reuse focal loss if exists
         loss_func = FocalLoss(class_num=cfg.dataset.num_classes, alpha=cfg.loss.obj_weight, gamma=cfg.loss.focal_gamma)
     elif cfg.loss.name == 'Dice':
-        loss_func = MultiDiceLoss(weights=cfg.loss.obj_weight, num_class=cfg.dataset.num_classes)
+        loss_func = MultiDiceLoss(weights=cfg.loss.obj_weight, num_class=cfg.dataset.num_classes,
+                                  use_gpu=cfg.general.num_gpus > 0)
     else:
         raise ValueError('Unknown loss function')
+
+    writer = SummaryWriter(os.path.join(cfg.general.save_dir, 'tensorboard'))
 
     # loop over batches
     for i in range(len(data_loader)):
@@ -88,7 +99,8 @@ def train(config_file):
             save_intermediate_results(list(range(batch_size)), crops, masks, None, frames, filenames,
                                       cfg.general.save_dir)
 
-        crops, masks = crops.cuda(), masks.cuda()
+        if cfg.general.num_gpus > 0:
+            crops, masks = crops.cuda(), masks.cuda()
 
         # clear previous gradients
         opt.zero_grad()
@@ -117,9 +129,14 @@ def train(config_file):
                 save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride, dataset.num_modality())
                 last_save_epoch = epoch_idx
 
+        writer.add_scalar('Train/Loss', train_loss.item(), batch_idx)
+
+    writer.close()
+
+
 def main():
 
-    long_description = "Training Engine for 3d medical image segmentation"
+    long_description = "Training engine for 3d medical image segmentation"
     parser = argparse.ArgumentParser(description=long_description)
     parser.add_argument('-i', '--input',
                         default='./config/config.py',

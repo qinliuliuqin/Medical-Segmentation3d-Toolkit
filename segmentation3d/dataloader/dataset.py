@@ -87,7 +87,16 @@ class SegmentationDataset(Dataset):
         """
         assert isinstance(image, sitk.Image)
 
-        return [0,0,0]
+        origin  = image.GetOrigin()
+        im_size_mm = [image.GetSize()[idx] * image.GetSpacing()[idx] for idx in range(3)]
+        crop_size_mm = self.crop_size * self.spacing
+
+        sp = np.array(origin, dtype=np.double)
+        for i in range(3):
+            if im_size_mm[i] > crop_size_mm[i]:
+                sp[i] = origin[i] + np.random.uniform(0, im_size_mm[i] - crop_size_mm[i])
+        center = sp + crop_size_mm / 2
+        return center
 
     def __getitem__(self, index):
         """ get a training sample - image(s) and segmentation pair

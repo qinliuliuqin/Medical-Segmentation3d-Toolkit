@@ -92,7 +92,6 @@ def convert_image_to_tensor(image):
             tmp = tmp.float()
             tensor.append(tmp)
             tensor = torch.cat(tensor, 0)
-
     else:
         raise ValueError('unknown input type')
 
