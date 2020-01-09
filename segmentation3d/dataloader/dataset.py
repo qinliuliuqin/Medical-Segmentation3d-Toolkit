@@ -133,7 +133,7 @@ class SegmentationDataset(Dataset):
             else:
                 centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
                 if len(centers) > 0:
-                    center = seg.TransformIndexToPhysicalPoint(int(centers[0][idx]) for idx in range(3))
+                    center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(3)])
                 else:  # if no segmentation
                     center = self.global_sample(seg)
 
