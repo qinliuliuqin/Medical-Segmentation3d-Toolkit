@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 from segmentation3d.utils.file_io import readlines
 from segmentation3d.dataloader.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
-    set_labels_outside_to_zero, convert_image_to_tensor
+    convert_image_to_tensor, get_image_frame
 
 
 def read_train_txt(imlist_file):
@@ -119,21 +119,24 @@ class SegmentationDataset(Dataset):
         # sampling a crop center
         if self.sampling_method == 'GLOBAL':
             center = self.global_sample(seg)
+
         elif self.sampling_method == 'MASK':
-            center = select_random_voxels_in_multi_class_mask(seg, 1, list(range(1, self.num_classes)))
-            if len(center) > 0:
-                center = seg.TransformIndexToPhysicalPoint(center[0])
+            centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
+            if len(centers) > 0:
+                center = seg.TransformIndexToPhysicalPoint([int(centers[0][idx]) for idx in range(3)])
             else:  # if no segmentation
                 center = self.global_sample(seg)
+
         elif self.sampling_method == 'HYBRID':
             if index % 2:
                 center = self.global_sample(seg)
             else:
-                center = select_random_voxels_in_multi_class_mask(seg, 1, list(range(1, self.num_classes)))
-                if len(center) > 0:
-                    center = seg.TransformIndexToPhysicalPoint(center[0])
+                centers = select_random_voxels_in_multi_class_mask(seg, 1, np.random.randint(1, self.num_classes))
+                if len(centers) > 0:
+                    center = seg.TransformIndexToPhysicalPoint(int(centers[0][idx]) for idx in range(3))
                 else:  # if no segmentation
                     center = self.global_sample(seg)
+
         else:
             raise ValueError('Only GLOBAL, MASK and HYBRID are supported as sampling methods')
 
@@ -149,15 +152,8 @@ class SegmentationDataset(Dataset):
 
         seg = crop_image(seg, center, self.crop_size, self.spacing, 'NN')
 
-        # set labels of not interest to zero
-        seg = set_labels_outside_to_zero(seg, 1, self.num_classes - 1)
-
         # image frame
-        frame = []
-        frame.extend(list(seg.GetSpacing()))
-        frame.extend(list(seg.GetOrigin()))
-        frame.extend(list(seg.GetDirection()))
-        frame = np.array(frame, dtype=np.float32)
+        frame = get_image_frame(seg)
 
         # convert to tensors
         im = convert_image_to_tensor(images)

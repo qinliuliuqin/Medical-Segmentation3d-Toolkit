@@ -5,27 +5,46 @@ import torch
 
 
 type_conversion_from_numpy_to_sitk = {
-    np.int8: sitk.sitkInt8,
-    np.int16: sitk.sitkInt16,
-    np.int32: sitk.sitkInt32,
-    np.int: sitk.sitkInt32,
-    np.int64: sitk.sitkInt64,
-    np.uint8: sitk.sitkUInt8,
-    np.uint16: sitk.sitkUInt16,
-    np.uint32: sitk.sitkUInt32,
-    np.uint64: sitk.sitkUInt64,
-    np.uint: sitk.sitkUInt32,
-    np.float32: sitk.sitkFloat32,
-    np.float64: sitk.sitkFloat64,
-    np.float: sitk.sitkFloat32
+    np.int8:     sitk.sitkInt8,
+    np.int16:    sitk.sitkInt16,
+    np.int32:    sitk.sitkInt32,
+    np.int:      sitk.sitkInt32,
+    np.int64:    sitk.sitkInt64,
+    np.uint8:    sitk.sitkUInt8,
+    np.uint16:   sitk.sitkUInt16,
+    np.uint32:   sitk.sitkUInt32,
+    np.uint64:   sitk.sitkUInt64,
+    np.uint:     sitk.sitkUInt32,
+    np.float32:  sitk.sitkFloat32,
+    np.float64:  sitk.sitkFloat64,
+    np.float:    sitk.sitkFloat32
 }
+
+
+def get_image_frame(image):
+    """
+    Get the frame of the given image. The image frame contains the origin, spacing, and direction of a image.
+
+    :parma image: A SimpleITK image
+    :return frame: The frame packed in a numpy array
+    """
+    assert isinstance(image, sitk.Image)
+
+    frame = []
+    frame.extend(list(image.GetSpacing()))
+    frame.extend(list(image.GetOrigin()))
+    frame.extend(list(image.GetDirection()))
+
+    return np.array(frame, dtype=np.float32)
 
 
 def set_image_frame(image, frame):
     """ Set the frame of the SimpleITK image
-    :param image: the input SimpleITK image
-    :param frame: the frame of image. It is a numpy array with 15 elements, with the first three elements representing
-                  the spacing, the next three elements representing the origin, and the rest representing the direction.
+
+    :param image: the a new frame to the input image.
+    :param frame: the new frame of the image. It is a numpy array with 15 elements, with the first three elements
+                  representing the spacing, the next three elements representing the origin, and the rest representing
+                  the direction.
     """
     assert isinstance(image, sitk.Image)
 
@@ -122,14 +141,24 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
 
 
 def select_random_voxels_in_multi_class_mask(mask, num_selected, selected_label):
+    """ Randomly select a list of voxels with the given label in the mask
+
+    :param mask: A multi-class label image
+    :param num_selected: The number of voxels to be selected
+    :param selected_label: The label to which the selected voxels belong
+    """
     assert isinstance(mask, sitk.Image)
 
-    return [0]
+    mask_npy = sitk.GetArrayFromImage(mask)
+    valid_voxels = np.argwhere(mask_npy == selected_label)
 
+    selected_voxels = []
+    while len(valid_voxels) > 0 and len(selected_voxels) < num_selected:
+        selected_index = np.random.randint(0, len(valid_voxels))
+        selected_voxel = valid_voxels[selected_index]
+        selected_voxels.append(selected_voxel[::-1])
 
-def set_labels_outside_to_zero(mask, min_label, max_label):
-
-    return mask
+    return selected_voxels
 
 
 def convert_image_to_tensor(image):
