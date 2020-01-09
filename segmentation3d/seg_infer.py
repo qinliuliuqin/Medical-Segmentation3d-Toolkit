@@ -23,9 +23,9 @@ def main():
 
     long_description = 'Training engine for 3d medical image segmentation \n' \
                        'It supports multiple kinds of input:\n' \
-                       '1. Image list txt file\n' \
-                       '2. Single image file\n' \
-                       '3. A folder that contains all testing images\n'
+                       '1. Single image\n' \
+                       '2. A text file containing paths of all testing images\n' \
+                       '3. A folder containing all testing images\n'
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input', type=str, help='input folder/file for intensity images')
