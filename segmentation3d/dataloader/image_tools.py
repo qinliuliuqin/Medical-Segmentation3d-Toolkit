@@ -23,7 +23,7 @@ type_conversion_from_numpy_to_sitk = {
 
 def get_image_frame(image):
     """
-    Get the frame of the given image. The image frame contains the origin, spacing, and direction of a image.
+    Get the frame of the given image. An image frame contains the origin, spacing, and direction of a image.
 
     :parma image: A SimpleITK image
     :return frame: The frame packed in a numpy array
@@ -211,30 +211,3 @@ def convert_tensor_to_image(tensor, dtype):
         raise ValueError('Only supports 3-dimsional or 4-dimensional image volume')
 
     return image
-
-
-def test_crop_image():
-    image_path = '/home/qinliu/projects/dental/case_67_cbct_patient/org.mha'
-    image = sitk.ReadImage(image_path)
-
-    cropping_center = [image.GetSize()[idx] // 2 for idx in range(3)]
-    cropping_size = [image.GetSize()[idx] // 2 for idx in range(3)]
-    cropping_spacing = [image.GetSpacing()[idx] * 3.0 for idx in range(3)]
-    interp_method = 'NN'
-    cropped_image = crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_method)
-
-    save_path = '/home/qinliu/cropped_image.mha'
-    sitk.WriteImage(cropped_image, save_path, True)
-
-
-def test_convert_tensor_to_image():
-    tensor = torch.randn(128, 128, 128)
-    image = convert_tensor_to_image(tensor, dtype=np.int)
-
-    save_path = '/home/qinliu/random_image.mha'
-    sitk.WriteImage(image, save_path, True)
-
-
-if __name__ == '__main__':
-
-    test_convert_tensor_to_image()
