@@ -1,5 +1,4 @@
 from easydict import EasyDict as edict
-import numpy as np
 
 __C = edict()
 cfg = __C
