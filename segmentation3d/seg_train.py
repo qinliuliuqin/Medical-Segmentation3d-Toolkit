@@ -1,4 +1,5 @@
 import argparse
+import importlib
 import numpy as np
 import os
 import shutil
@@ -7,16 +8,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-import importlib
 from tensorboardX import SummaryWriter
 
 from segmentation3d.dataloader.dataset import SegmentationDataset
-from segmentation3d.dataloader.sampler import EpochConcateSampler
-from segmentation3d.utils.file_io import load_config, setup_logger
 from segmentation3d.dataloader.image_tools import save_intermediate_results
-from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint
-from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
+from segmentation3d.dataloader.sampler import EpochConcateSampler
 from segmentation3d.loss.focal_loss import FocalLoss
+from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
+from segmentation3d.utils.file_io import load_config, setup_logger
+from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint
 
 
 def train(config_file):
@@ -79,8 +79,6 @@ def train(config_file):
     else:
         last_save_epoch, batch_start = 0, 0
 
-    batch_idx = batch_start
-    data_iter = iter(data_loader)
     if cfg.loss.name == 'Focal':
         # reuse focal loss if exists
         loss_func = FocalLoss(class_num=cfg.dataset.num_classes, alpha=cfg.loss.obj_weight, gamma=cfg.loss.focal_gamma)
@@ -91,6 +89,9 @@ def train(config_file):
         raise ValueError('Unknown loss function')
 
     writer = SummaryWriter(os.path.join(cfg.general.save_dir, 'tensorboard'))
+
+    batch_idx = batch_start
+    data_iter = iter(data_loader)
 
     # loop over batches
     for i in range(len(data_loader)):
