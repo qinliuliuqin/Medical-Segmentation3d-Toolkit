@@ -104,8 +104,8 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
 
     :param image: The given volume to be cropped.
     :param cropping_center: The center of the cropped patch in the world coordinate system of the given volume.
-    :param cropping_size: The size of the cropped patch.
-    :param cropping_spacing: The spacing of the cropped patch.
+    :param cropping_size: The voxel coordinate size of the cropped patch.
+    :param cropping_spacing: The voxel spacing of the cropped patch.
     :param interp_method: The interpolation method, only support 'NN' and 'Linear'.
     :return a cropped patch
     """

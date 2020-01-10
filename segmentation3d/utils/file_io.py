@@ -11,6 +11,8 @@ def load_config(pyfile):
     :param pyfile     configuration python file
     :return a loaded network module
     """
+    assert os.path.isfile(pyfile), 'The file {} does not exits!'.format(pyfile)
+
     dirname = os.path.dirname(pyfile)
     basename = os.path.basename(pyfile)
     modulename, _ = os.path.splitext(basename)
