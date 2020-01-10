@@ -67,10 +67,9 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride
     # save python optimizer state
     torch.save(opt.state_dict(), opt_filename)
 
-    # save template parameter ini file
+    # save training and inference configuration files
     config_folder = os.path.dirname(os.path.dirname(__file__))
-    ini_file = os.path.join(os.path.join(config_folder, 'config', 'params.ini'))
-    shutil.copy(ini_file, os.path.join(chk_folder, 'params.ini'))
+    infer_config_file = os.path.join(os.path.join(config_folder, 'config', 'infer_config.py'))
+    shutil.copy(infer_config_file, os.path.join(chk_folder, 'infer_config.py'))
 
-    # copy config file
-    shutil.copy(config_file, os.path.join(chk_folder, 'config.py'))
+    shutil.copy(config_file, os.path.join(chk_folder, 'train_config.py'))
