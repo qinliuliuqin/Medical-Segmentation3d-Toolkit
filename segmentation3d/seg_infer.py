@@ -141,7 +141,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
 def main():
 
-    long_description = 'Training engine for 3d medical image segmentation \n' \
+    long_description = 'Inference engine for 3d medical image segmentation \n' \
                        'It supports multiple kinds of input:\n' \
                        '1. Single image\n' \
                        '2. A text file containing paths of all testing images\n' \
