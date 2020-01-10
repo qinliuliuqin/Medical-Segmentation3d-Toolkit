@@ -147,7 +147,7 @@ def main():
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input',
-                        default='./config/config.py',
+                        default='./config/train_config.py',
                         help='configure file for medical image segmentation training.')
     args = parser.parse_args()
 
