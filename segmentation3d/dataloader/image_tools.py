@@ -25,8 +25,8 @@ def get_image_frame(image):
     """
     Get the frame of the given image. An image frame contains the origin, spacing, and direction of a image.
 
-    :parma image: A SimpleITK image
-    :return frame: The frame packed in a numpy array
+    :parma image: a SimpleITK image
+    :return frame: the frame packed in a numpy array
     """
     assert isinstance(image, sitk.Image)
 
@@ -39,7 +39,8 @@ def get_image_frame(image):
 
 
 def set_image_frame(image, frame):
-    """ Set the frame of the SimpleITK image
+    """
+    Set the frame of the SimpleITK image
 
     :param image: the a new frame to the input image.
     :param frame: the new frame of the image. It is a numpy array with 15 elements, with the first three elements
@@ -58,7 +59,8 @@ def set_image_frame(image, frame):
 
 
 def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, out_folder):
-    """ save intermediate results to training folder
+    """
+    Save intermediate results to training folder
 
     :param idxs: the indices of crops within batch to save
     :param crops: the batch tensor of image crops
@@ -102,29 +104,24 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     This function DO NOT consider the transformation of coordinate systems, which means the cropped patch has the same
     coordinate system with the given volume.
 
-    :param image: The given volume to be cropped.
-    :param cropping_center: The center of the cropped patch in the world coordinate system of the given volume.
-    :param cropping_size: The voxel coordinate size of the cropped patch.
-    :param cropping_spacing: The voxel spacing of the cropped patch.
-    :param interp_method: The interpolation method, only support 'NN' and 'Linear'.
+    :param image: the given volume to be cropped.
+    :param cropping_center: the center of the cropped patch in the world coordinate system of the given volume.
+    :param cropping_size: the voxel coordinate size of the cropped patch.
+    :param cropping_spacing: the voxel spacing of the cropped patch.
+    :param interp_method: the interpolation method, only support 'NN' and 'Linear'.
     :return a cropped patch
     """
     assert isinstance(image, sitk.Image)
 
-    spacing = image.GetSpacing()
-    direction = image.GetDirection()
-
-    cropping_center = [int(cropping_center[idx]) for idx in range(3)]
+    cropping_center = [float(cropping_center[idx]) for idx in range(3)]
     cropping_size = [int(cropping_size[idx]) for idx in range(3)]
     cropping_spacing = [float(cropping_spacing[idx]) for idx in range(3)]
 
-    cropping_start_point_voxel = list(image.TransformPhysicalPointToIndex(cropping_center))
-    for idx in range(3):
-        cropping_start_point_voxel[idx] -= int(cropping_size[idx] * cropping_spacing[idx] / spacing[idx]) // 2
-    cropping_start_point_world = image.TransformIndexToPhysicalPoint(cropping_start_point_voxel)
+    cropping_physical_size = [cropping_size[idx] * cropping_spacing[idx] for idx in range(3)]
+    cropping_start_point_world = [cropping_center[idx] - cropping_physical_size[idx] / 2.0 for idx in range(3)]
 
     cropping_origin = cropping_start_point_world
-    cropping_direction = direction
+    cropping_direction = image.GetDirection()
 
     if interp_method == 'LINEAR':
         interp_method = sitk.sitkLinear
@@ -140,12 +137,82 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     return outimage
 
 
+def copy_image(source_image, voi_center, voi_size, target_image, interpolation='NN'):
+    """
+    Copy data from source image to target image in the volume of interest.
+
+    :param source_image: the source image.
+    :param voi_center: the center of the interested volume, unit: mm
+    :param voi_size: the size of the interested volume, unit: mm
+    :param target_image: the target image
+    :param interpolation: the interpolation type, only support 'NN' yet.
+    :return None
+    """
+    assert isinstance(source_image, sitk.Image)
+    assert isinstance(target_image, sitk.Image)
+
+    image_size = target_image.GetSize()
+
+    sp_world = [float(voi_center[idx] - voi_size[idx] / 2.0) for idx in range(3)]
+    sp_voxel = np.floor(target_image.TransformPhysicalPointToContinuousIndex(sp_world))
+    sp_voxel = [int(min(max(0, sp_voxel[idx]), image_size[idx] - 1)) for idx in range(3)]
+
+    ep_world = [float(sp_world[idx] + voi_size[idx]) for idx in range(3)]
+    ep_voxel = np.ceil(target_image.TransformPhysicalPointToContinuousIndex(ep_world))
+    ep_voxel = [int(min(max(0, ep_voxel[idx]), image_size[idx] - 1)) for idx in range(3)]
+
+    source_size = source_image.GetSize()
+    for idx in range(sp_voxel[0], ep_voxel[0] + 1):
+        for idy in range(sp_voxel[1], ep_voxel[1] + 1):
+            for idz in range(sp_voxel[2], ep_voxel[2] + 1):
+                world = target_image.TransformIndexToPhysicalPoint([idx, idy, idz])
+
+                # Nearest Neighbor interpolation
+                voxel_in_source = source_image.TransformPhysicalPointToContinuousIndex(world)
+                voxel_in_source_nn = [int(round(voxel_in_source[idx])) for idx in range(3)]
+
+                if voxel_in_source_nn[0] >= 0 and voxel_in_source_nn[0] < source_size[0] and \
+                    voxel_in_source_nn[1] >= 0 and voxel_in_source_nn[1] < source_size[1] and \
+                    voxel_in_source_nn[2] >= 0 and voxel_in_source_nn[2] < source_size[2]:
+                    target_image[idx, idy, idz] = source_image.GetPixel(voxel_in_source_nn)
+
+
+def image_partition_by_fixed_size(image, partition_size):
+    """
+    Split image by fixed size.
+
+    :param image: the input image to be spilt
+    :param partition_size: the physical size of each partition
+    :return partition_centers: the list containing center voxel of each partition
+    """
+    image_size, image_spacing, image_origin = image.GetSize(), image.GetSpacing(), image.GetOrigin()
+    image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
+
+    partition_number = [int(np.ceil(image_physical_size[idx] / partition_size[idx])) for idx in range(3)]
+    partition_centers = []
+    for idx in range(0, partition_number[0]):
+        for idy in range(0, partition_number[1]):
+            for idz in range(0, partition_number[2]):
+                center = [float(image_origin[0] + partition_size[0] * (0.5 + idx)),
+                          float(image_origin[1] + partition_size[1] * (0.5 + idy)),
+                          float(image_origin[2] + partition_size[2] * (0.5 + idz))]
+
+                for index in range(3):
+                    center_maximum = image_origin[index] + image_physical_size[index] - partition_size[index] / 2.0
+                    center[index] = min(center[index], center_maximum)
+
+                partition_centers.append(center)
+
+    return partition_centers
+
+
 def select_random_voxels_in_multi_class_mask(mask, num_selected, selected_label):
-    """ Randomly select a list of voxels with the given label in the mask
+    """
+    Randomly select a list of voxels with the given label in the mask
 
     :param mask: A multi-class label image
-    :param num_selected: The number of voxels to be selected
-    :param selected_label: The label to which the selected voxels belong
+    :param num_selected: the number of voxels to be selected
+    :param selected_label: the label to which the selected voxels belong
     """
     assert isinstance(mask, sitk.Image)
 
@@ -162,7 +229,8 @@ def select_random_voxels_in_multi_class_mask(mask, num_selected, selected_label)
 
 
 def convert_image_to_tensor(image):
-    """ Convert an SimpleITK image object to float tensor
+    """
+    Convert an SimpleITK image object to float tensor
     """
     if isinstance(image, sitk.Image):
         tensor = torch.from_numpy(sitk.GetArrayFromImage(image))
@@ -184,7 +252,9 @@ def convert_image_to_tensor(image):
 
 
 def convert_tensor_to_image(tensor, dtype):
-    """ convert tensor to SimpleITK image object """
+    """
+    convert tensor to SimpleITK image object
+    """
     assert isinstance(tensor, torch.Tensor), 'input must be a tensor'
 
     data = tensor.cpu().numpy()

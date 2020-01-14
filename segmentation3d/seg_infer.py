@@ -12,7 +12,7 @@ from easydict import EasyDict as edict
 from segmentation3d.utils.file_io import load_config
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, \
-  convert_image_to_tensor, convert_tensor_to_image
+  convert_image_to_tensor, convert_tensor_to_image, copy_image, image_partition_by_fixed_size
 
 
 def load_seg_model(model_folder, gpu_id=0):
@@ -65,7 +65,7 @@ def segmentation_voi(image, model, center, size):
 
   # the cropping size should be multiple of the max_stride
   max_stride = model['max_stride']
-  cropping_size = [int(size[idx] / model['spacing'][idx]) for idx in range(3)]
+  cropping_size = [int(np.round(size[idx] / model['spacing'][idx])) for idx in range(3)]
   for idx in range(3):
     if cropping_size[idx] % max_stride:
       cropping_size[idx] += max_stride - cropping_size[idx] % max_stride
@@ -102,41 +102,63 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     :param save_prob_index:     The probability map of which class will be saved. Save no prob if setting to -1.
     :return: None
     """
-    total_test_time = 0
 
+    begin = time.time()
     # load model
     model = load_seg_model(model_folder, gpu_id)
     model.save_image = save_image
     model.save_prob_index = save_prob_index
+    load_model_time = time.time() - begin
 
+    begin = time.time()
     # load image
     image = sitk.ReadImage(input_path)
+    image_size, image_spacing = image.GetSize(), image.GetSpacing()
+    read_image_time = time.time() - begin
 
+    case_name = os.path.split(input_path)[-1]
+
+    # set mask and prob
+    mask = sitk.Image(image_size, sitk.sitkInt8)
+    set_image_frame(mask, get_image_frame(image))
+
+    begin = time.time()
     partition_type = model['infer_cfg'].general.partition_type
     if partition_type == 'DISABLE':
-      center_voxel = [float(image.GetSize()[idx] / 2.0) for idx in range(3)]
-      center_world = image.TransformContinuousIndexToPhysicalPoint(center_voxel)
-      volume_size = [32, 32, 32]
-      mask, prob = segmentation_voi(image, model, center_world, volume_size)
+      # no partition, use the whole image
+      image_voxel_center = [float(image_size[idx] / 2.0) for idx in range(3)]
+      image_world_center = image.TransformContinuousIndexToPhysicalPoint(image_voxel_center)
 
-      # debug only
-      mask_path = '/home/qinliu/mask.mha'
-      prob_path = '/home/qinliu/prob.mha'
-      sitk.WriteImage(mask, mask_path, True)
-      sitk.WriteImage(prob, prob_path, True)
-
-    elif partition_type == 'NUM':
-      pass
+      image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
+      mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size)
+      copy_image(mask_voi, image_world_center, image_physical_size, mask, 'NN')
 
     elif partition_type == 'SIZE':
-      pass
+      # image partition by fixed volume size
+      image_partition_size = model['infer_cfg'].general.partition_size
+      image_world_centers = image_partition_by_fixed_size(image, image_partition_size)
+
+      for idx, image_world_center in enumerate(image_world_centers):
+        mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size)
+        copy_image(mask_voi, image_world_center, image_partition_size, mask, 'NN')
+
+        print('{:0.2f}%'.format((idx + 1) / len(image_world_centers) * 100))
 
     else:
       raise ValueError('Unsupported partition type!')
+    test_time = time.time() - begin
 
+    if not os.path.isdir(os.path.join(output_folder, case_name)):
+      os.makedirs(os.path.join(output_folder, case_name))
 
-    # save segmentation mask
-    pass
+    # save results
+    if model.save_image:
+      sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
+
+    sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
+
+    total_test_time = load_model_time + read_image_time + test_time
+    print('total test time: {:.2f}'.format(total_test_time))
 
 
 def main():
@@ -149,13 +171,13 @@ def main():
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input',
-                        default='/home/qinliu/projects/segmentation3d/debug/org.mha',
+                        default='/home/qinliu/roi.mha',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
                         default='/home/qinliu/projects/segmentation3d/debug/model_0110_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
-                        default='',
+                        default='/home/qinliu/results',
                         help='output folder for segmentation')
     parser.add_argument('-n', '--seg_name',
                         default='result.mha',
@@ -166,7 +188,7 @@ def main():
     parser.add_argument('--save_image',
                         help='whether to save original image', action="store_true")
     parser.add_argument('--save_prob_index',
-                        default='1',
+                        default='-1',
                         help='whether to save single prob map')
     args = parser.parse_args()
 
