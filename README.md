@@ -26,4 +26,6 @@
    ```
    
 4. Test the model:
-   TO-BE-DONE
+   ```shell
+   python seg_test.py
+   ```
