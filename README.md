@@ -27,5 +27,5 @@
    
 4. Test the model:
    ```shell
-   python seg_test.py
+   python seg_infer.py
    ```
