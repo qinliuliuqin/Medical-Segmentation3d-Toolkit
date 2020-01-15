@@ -1,5 +1,4 @@
 import argparse
-import edict
 import importlib
 import os
 import SimpleITK as sitk
@@ -30,6 +29,9 @@ def load_seg_model(model_folder, gpu_id=0):
   infer_cfg = load_config(os.path.join(latest_checkpoint_dir, 'infer_config.py'))
   model.infer_cfg = infer_cfg
 
+  if gpu_id >= 0:
+    os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
+
   # load model state
   chk_file = os.path.join(latest_checkpoint_dir, 'params.pth')
   state = torch.load(chk_file)
@@ -37,13 +39,14 @@ def load_seg_model(model_folder, gpu_id=0):
   # load network module
   net_module = importlib.import_module('segmentation3d.network.' + state['net'])
   net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
+  net = nn.parallel.DataParallel(net)
   net.load_state_dict(state['state_dict'])
   net.eval()
 
   if gpu_id >= 0:
-    net = nn.parallel.DataParallel(net)
     net = net.cuda()
-
+    del os.environ['CUDA_VISIBLE_DEVICES']
+    
   model.net = net
   model.spacing = state['spacing']
   model.max_stride = state['max_stride']
@@ -52,7 +55,7 @@ def load_seg_model(model_folder, gpu_id=0):
   return model
 
 
-def segmentation_voi(image, model, center, size):
+def segmentation_voi(image, model, center, size, use_gpu):
   """ Segment a volume of interest from an image. The volume will be cropped from the image first with the specified
   center and size, and then, the cropped block will be segmented by the segmentation model.
 
@@ -72,6 +75,9 @@ def segmentation_voi(image, model, center, size):
 
   iso_image = crop_image(image, center, cropping_size, model['spacing'], model['interpolation'])
   iso_image_tensor = convert_image_to_tensor(iso_image).unsqueeze(0)
+  
+  if use_gpu:
+    iso_image_tensor = iso_image_tensor.cuda()
 
   with torch.no_grad():
     probs = model['net'](iso_image_tensor)
@@ -130,7 +136,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       image_world_center = image.TransformContinuousIndexToPhysicalPoint(image_voxel_center)
 
       image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
-      mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size)
+      mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size, gpu_id > 0)
       copy_image(mask_voi, image_world_center, image_physical_size, mask, 'NN')
 
     elif partition_type == 'SIZE':
@@ -139,7 +145,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       image_world_centers = image_partition_by_fixed_size(image, image_partition_size)
 
       for idx, image_world_center in enumerate(image_world_centers):
-        mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size)
+        mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size, gpu_id > 0)
         copy_image(mask_voi, image_world_center, image_partition_size, mask, 'NN')
 
         print('{:0.2f}%'.format((idx + 1) / len(image_world_centers) * 100))
@@ -171,19 +177,19 @@ def main():
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input',
-                        default='/home/qinliu/roi.mha',
+                        default='/shenlab/lab_stor6/qinliu/CT_Dental/data/case_100_ct_patient/org.mha',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/home/qinliu/projects/segmentation3d/debug/model_0110_2020',
+                        default='/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0115_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
-                        default='/home/qinliu/results',
+                        default='/home/qinliu19/results',
                         help='output folder for segmentation')
     parser.add_argument('-n', '--seg_name',
                         default='result.mha',
                         help='the name of the segmentation result to be saved')
     parser.add_argument('-g', '--gpu_id',
-                        default='-1',
+                        default='6',
                         help='the gpu id to run model, set to -1 if using cpu only.')
     parser.add_argument('--save_image',
                         help='whether to save original image', action="store_true")
