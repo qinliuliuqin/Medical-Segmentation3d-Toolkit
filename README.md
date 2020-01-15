@@ -25,7 +25,7 @@
    python seg_train.py
    ```
    
-4. Configure the training settings in `config/infer_config.py`.
+4. Configure the testing settings in `config/infer_config.py`.
 
 5. Test the model:
    ```shell
