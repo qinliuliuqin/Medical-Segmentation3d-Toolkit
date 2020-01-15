@@ -10,7 +10,7 @@
    git clone https://github.com/qinliuliuqin/Medical-Segmentation3d-Toolkit.git
    cd Medical-Segmentation3d-Toolkit/segmentation3d
    ```
-2. Configure the training settings in `config/config.py`.
+2. Configure the training settings in `config/train_config.py`.
    The format of the training txt file should be:
    ```
    line1: number of traning images, eg. 200
@@ -25,7 +25,9 @@
    python seg_train.py
    ```
    
-4. Test the model:
+4. Configure the training settings in `config/infer_config.py`.
+
+5. Test the model:
    ```shell
    python seg_infer.py
    ```
