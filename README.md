@@ -1,6 +1,6 @@
 # Introduction
 
-3d medical image segmentation engine
+Medical image 3D segmentation engine. This engine is based on Pytorch.
 
 # Usage
 
