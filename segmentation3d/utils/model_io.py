@@ -44,10 +44,12 @@ def load_checkpoint(epoch_idx, net, opt, save_dir, gpu_id=0):
 
     if gpu_id >= 0:
       os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
-      state = torch.load(chk_file)
-    else:
-      state = torch.load(chk_file, map_location='cpu')
 
+    map_location = 'cpu'
+    if gpu_id >= 0:
+      map_location = None
+
+    state = torch.load(chk_file, map_location=map_location)
     net = nn.parallel.DataParallel(net)
     net.load_state_dict(state['state_dict'])
 
@@ -55,11 +57,7 @@ def load_checkpoint(epoch_idx, net, opt, save_dir, gpu_id=0):
     opt_file = os.path.join(save_dir, 'checkpoints', 'chk_{}'.format(epoch_idx), 'optimizer.pth')
     assert os.path.isfile(opt_file), 'optimizer file not found: {}'.format(chk_file)
 
-    if gpu_id >= 0:
-      opt_state = torch.load(opt_file)
-    else:
-      opt_state = torch.load(opt_file, map_location='cpu')
-
+    opt_state = torch.load(opt_file, map_location=map_location)
     opt.load_state_dict(opt_state)
 
     if gpu_id >= 0:
