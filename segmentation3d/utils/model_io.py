@@ -93,7 +93,6 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride
              'state_dict':        net.state_dict(),
              'spacing':           cfg.dataset.spacing,
              'interpolation':     cfg.dataset.interpolation,
-             'default_values':    cfg.dataset.default_values,
              'in_channels':       num_modality,
              'out_channels':      cfg.dataset.num_classes,
              'crop_normalizers':  [normalizer.to_dict() for normalizer in cfg.dataset.crop_normalizers]}
