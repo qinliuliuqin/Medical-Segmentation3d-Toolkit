@@ -75,7 +75,7 @@ def train(config_file):
 
     # load checkpoint if resume epoch > 0
     if cfg.general.resume_epoch >= 0:
-        last_save_epoch, batch_start = load_checkpoint(cfg.general.resume_epoch, net, opt, cfg.general.save_dir)
+        last_save_epoch, batch_start = load_checkpoint(cfg.general.resume_epoch, net, opt, cfg.general.save_dir, -1)
     else:
         last_save_epoch, batch_start = 0, 0
 
@@ -116,7 +116,7 @@ def train(config_file):
         # save training crops for visualization
         if cfg.debug.save_inputs:
             batch_size = crops.size(0)
-            save_intermediate_results(list(range(batch_size)), crops, masks, None, frames, filenames,
+            save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
                                       os.path.join(cfg.general.save_dir, 'batch_{}'.format(i)))
 
         epoch_idx = batch_idx * cfg.train.batchsize // len(dataset)
