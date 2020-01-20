@@ -43,9 +43,6 @@ __C.dataset.spacing = [0.4, 0.4, 0.4]
 # the sampling crop size, e.g., determine the context information
 __C.dataset.crop_size = [128, 128, 128]
 
-# the default padding value list
-__C.dataset.default_values = [0]
-
 # sampling method:
 # 1) GLOBAL: sampling crops randomly in the entire image domain
 # 2) MASK: sampling crops randomly within segmentation mask
