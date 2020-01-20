@@ -93,9 +93,11 @@ def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, o
             sitk.WriteImage(mask, os.path.join(case_out_folder, 'batch_{}_mask.nii.gz'.format(i)))
 
         if outputs is not None:
-            output = convert_tensor_to_image(outputs[i, 0].data, dtype=np.float32)
-            set_image_frame(output, frames[i].numpy())
-            sitk.WriteImage(output, os.path.join(case_out_folder, 'batch_{}_output.nii.gz'.format(i)))
+            cls_num = outputs.size()[1]
+            for cls in range(cls_num):
+                output = convert_tensor_to_image(outputs[i, cls].data, dtype=np.float32)
+                set_image_frame(output, frames[i].numpy())
+                sitk.WriteImage(output, os.path.join(case_out_folder, 'batch_{}_output_{}.nii.gz'.format(i, cls)))
 
 
 def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_method):
@@ -204,6 +206,37 @@ def image_partition_by_fixed_size(image, partition_size):
                 partition_centers.append(center)
 
     return partition_centers
+
+
+def normalize_image(image, mean, std, clip, clip_min=-1.0, clip_max=1.0):
+    """
+    Normalize image by setting mean and standard deviation.
+    """
+    assert isinstance(image, sitk.Image)
+
+    image_npy = sitk.GetArrayFromImage(image)
+    image_npy = (image_npy - mean) / std
+
+    if clip:
+        image_npy[image_npy < clip_min] = clip_min
+        image_npy[image_npy > clip_max] = clip_max
+
+    normalized_image = sitk.GetImageFromArray(image_npy)
+    set_image_frame(normalized_image, get_image_frame(image))
+    normalized_image = sitk.Cast(normalized_image, image.GetPixelID())
+
+    return normalized_image
+
+
+def percentiles(image, percentiles):
+    """
+    Get image percentile
+    """
+    assert isinstance(image, sitk.Image)
+
+    image_npy = sitk.GetArrayFromImage(image)
+    results = np.percentile(image_npy, percentiles)
+    return results
 
 
 def select_random_voxels_in_multi_class_mask(mask, num_selected, selected_label):
