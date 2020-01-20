@@ -12,6 +12,7 @@ from segmentation3d.utils.file_io import load_config
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, \
   convert_image_to_tensor, convert_tensor_to_image, copy_image, image_partition_by_fixed_size
+from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 
 
 def load_seg_model(model_folder, gpu_id=0):
@@ -29,17 +30,24 @@ def load_seg_model(model_folder, gpu_id=0):
   infer_cfg = load_config(os.path.join(latest_checkpoint_dir, 'infer_config.py'))
   model.infer_cfg = infer_cfg
 
+  # load model state
+  chk_file = os.path.join(latest_checkpoint_dir, 'params.pth')
+
   if gpu_id >= 0:
     os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
 
-  # load model state
-  chk_file = os.path.join(latest_checkpoint_dir, 'params.pth')
-  state = torch.load(chk_file)
+  map_location = 'cpu'
+  if gpu_id >= 0:
+    map_location = None
 
   # load network module
+  state = torch.load(chk_file, map_location=map_location)
   net_module = importlib.import_module('segmentation3d.network.' + state['net'])
   net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
-  net = nn.parallel.DataParallel(net)
+
+  if gpu_id >= 0:
+    net = nn.parallel.DataParallel(net)
+
   net.load_state_dict(state['state_dict'])
   net.eval()
 
@@ -51,6 +59,18 @@ def load_seg_model(model_folder, gpu_id=0):
   model.spacing = state['spacing']
   model.max_stride = state['max_stride']
   model.interpolation = state['interpolation']
+  model.crop_normalizers = []
+  for crop_normalizer in state['crop_normalizers']:
+    if crop_normalizer['type'] == 0:
+      model.crop_normalizers.append(FixedNormalizer(crop_normalizer['mean'],
+                                                    crop_normalizer['stddev'],
+                                                    crop_normalizer['clip']))
+    elif crop_normalizer['type'] == 1:
+      model.crop_normalizers.append(AdaptiveNormalizer(crop_normalizer['min_p'],
+                                                       crop_normalizer['max_p'],
+                                                       crop_normalizer['clip']))
+    else:
+      raise ValueError('Unsupported normalization type.')
 
   return model
 
@@ -74,6 +94,10 @@ def segmentation_voi(image, model, center, size, use_gpu):
       cropping_size[idx] += max_stride - cropping_size[idx] % max_stride
 
   iso_image = crop_image(image, center, cropping_size, model['spacing'], model['interpolation'])
+
+  if model['crop_normalizers'] is not None:
+    iso_image = model.crop_normalizers[0](iso_image)
+
   iso_image_tensor = convert_image_to_tensor(iso_image).unsqueeze(0)
   
   if use_gpu:
@@ -118,7 +142,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
     begin = time.time()
     # load image
-    image = sitk.ReadImage(input_path)
+    image = sitk.ReadImage(input_path, sitk.sitkFloat32)
     image_size, image_spacing = image.GetSize(), image.GetSpacing()
     read_image_time = time.time() - begin
 
