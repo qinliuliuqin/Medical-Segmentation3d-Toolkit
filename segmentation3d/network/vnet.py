@@ -1,12 +1,17 @@
 import torch
 import torch.nn as nn
 from segmentation3d.network.module.residual_block3 import ResidualBlock3
-from segmentation3d.network.module.init import kaiming_weight_init
+from segmentation3d.network.module.weight_init import kaiming_weight_init, gaussian_weight_init
 
 
 def parameters_kaiming_init(net):
     """ model parameters initialization """
     net.apply(kaiming_weight_init)
+
+
+def parameters_gaussian_init(net):
+    """ model parameters initialization """
+    net.apply(gaussian_weight_init)
 
 
 class DownBlock(nn.Module):
@@ -56,6 +61,7 @@ class InputBlock(nn.Module):
         out = self.act(self.bn(self.conv(input)))
         return out
 
+
 class OutputBlock(nn.Module):
     """ output block of v-net
 
@@ -69,11 +75,12 @@ class OutputBlock(nn.Module):
         self.bn1 = nn.BatchNorm3d(out_channels)
         self.act1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv3d(out_channels, out_channels, kernel_size=1)
+        self.bn2 = nn.BatchNorm3d(out_channels)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, input):
         out = self.act1(self.bn1(self.conv1(input)))
-        out = self.conv2(out)
+        out = self.bn2(self.conv2(out))
         out = self.softmax(out)
         return out
 
