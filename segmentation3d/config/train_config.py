@@ -1,4 +1,6 @@
 from easydict import EasyDict as edict
+from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
+
 
 __C = edict()
 cfg = __C
@@ -48,6 +50,7 @@ __C.dataset.default_values = [0]
 # 1) GLOBAL: sampling crops randomly in the entire image domain
 # 2) MASK: sampling crops randomly within segmentation mask
 # 3) HYBRID: Sampling crops randomly with both GLOBAL and MASK methods
+# 4) CENTER: sampling crops in the image center
 __C.dataset.sampling_method = 'HYBRID'
 
 # translation augmentation (unit: mm)
@@ -63,7 +66,7 @@ __C.dataset.interpolation = 'LINEAR'
 # 1) FixedNormalizer: use fixed mean and standard deviation to normalize intensity
 # 2) AdaptiveNormalizer: use minimum and maximum intensity of crop to normalize intensity
 #__C.dataset.crop_normalizers = [FixedNormalizer(mean=150, stddev=350, clip=True)]
-__C.dataset.crop_normalizers = [None]
+__C.dataset.crop_normalizers = [AdaptiveNormalizer()]
 
 ##################################
 # training loss

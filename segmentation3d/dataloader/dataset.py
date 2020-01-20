@@ -98,6 +98,20 @@ class SegmentationDataset(Dataset):
         center = sp + crop_size_mm / 2
         return center
 
+    def center_sample(self, image):
+        """ return the world coordinate of the image center
+        :param image: a image3d object
+        :return: the image center in world coordinate
+        """
+        assert isinstance(image, sitk.Image)
+
+        origin = image.GetOrigin()
+        end_point_voxel = [int(image.GetSize()[idx] - 1) for idx in range(3)]
+        end_point_world = image.TransformIndexToPhysicalPoint(end_point_voxel)
+
+        center = np.array([(origin[idx] + end_point_world[idx]) / 2.0 for idx in range(3)], dtype=np.double)
+        return center
+
     def __getitem__(self, index):
         """ get a training sample - image(s) and segmentation pair
         :param index:  the sample index
@@ -117,7 +131,10 @@ class SegmentationDataset(Dataset):
         seg = sitk.ReadImage(seg_path)
 
         # sampling a crop center
-        if self.sampling_method == 'GLOBAL':
+        if self.sampling_method == 'CENTER':
+            center = self.center_sample(seg)
+
+        elif self.sampling_method == 'GLOBAL':
             center = self.global_sample(seg)
 
         elif self.sampling_method == 'MASK':
@@ -148,7 +165,7 @@ class SegmentationDataset(Dataset):
             images[idx] = crop_image(images[idx], center, self.crop_size, self.spacing, self.interpolation)
 
             if self.crop_normalizers[idx] is not None:
-                self.crop_normalizers[idx](images[idx])
+                images[idx] = self.crop_normalizers[idx](images[idx])
 
         seg = crop_image(seg, center, self.crop_size, self.spacing, 'NN')
 
