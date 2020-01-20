@@ -33,14 +33,13 @@ def read_train_txt(imlist_file):
 class SegmentationDataset(Dataset):
     """ training data set for volumetric segmentation """
 
-    def __init__(self, imlist_file, num_classes, spacing, crop_size, default_values, sampling_method,
+    def __init__(self, imlist_file, num_classes, spacing, crop_size, sampling_method,
                  random_translation, interpolation, crop_normalizers):
         """ constructor
         :param imlist_file: image-segmentation list file
         :param num_classes: the number of classes
         :param spacing: the resolution, e.g., [1, 1, 1]
         :param crop_size: crop size, e.g., [96, 96, 96]
-        :param default_values: default padding value list, e.g.,[0]
         :param sampling_method: 'GLOBAL', 'MASK'
         :param random_translation: random translation
         :param interpolation: 'LINEAR' for linear interpolation, 'NN' for nearest neighbor
@@ -52,7 +51,6 @@ class SegmentationDataset(Dataset):
             raise ValueError('imseg_list must be a txt file')
 
         self.num_classes = num_classes
-        self.default_values = default_values
 
         self.spacing = np.array(spacing, dtype=np.double)
         assert self.spacing.size == 3, 'only 3-element of spacing is supported'
@@ -60,7 +58,8 @@ class SegmentationDataset(Dataset):
         self.crop_size = np.array(crop_size, dtype=np.int32)
         assert self.crop_size.size == 3, 'only 3-element of crop size is supported'
 
-        assert sampling_method in ('GLOBAL', 'MASK', 'HYBRID'), 'sampling_method must be GLOBAL, MASK or HYBRID'
+        assert sampling_method in ('CENTER', 'GLOBAL', 'MASK', 'HYBRID'), \
+            'sampling_method must be CENTER, GLOBAL, MASK or HYBRID'
         self.sampling_method = sampling_method
 
         self.random_translation = np.array(random_translation, dtype=np.double)
