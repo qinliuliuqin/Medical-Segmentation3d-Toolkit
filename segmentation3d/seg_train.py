@@ -49,7 +49,6 @@ def train(config_file):
                 num_classes=cfg.dataset.num_classes,
                 spacing=cfg.dataset.spacing,
                 crop_size=cfg.dataset.crop_size,
-                default_values=cfg.dataset.default_values,
                 sampling_method=cfg.dataset.sampling_method,
                 random_translation=cfg.dataset.random_translation,
                 interpolation=cfg.dataset.interpolation,
