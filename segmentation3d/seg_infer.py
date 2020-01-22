@@ -43,7 +43,7 @@ def load_seg_model(model_folder, gpu_id=0):
   # load network module
   state = torch.load(chk_file, map_location=map_location)
   net_module = importlib.import_module('segmentation3d.network.' + state['net'])
-  net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
+  net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
 
   if gpu_id >= 0:
     net = nn.parallel.DataParallel(net)
@@ -104,7 +104,7 @@ def segmentation_voi(image, model, center, size, use_gpu):
     iso_image_tensor = iso_image_tensor.cuda()
 
   with torch.no_grad():
-    probs = model['net'](iso_image_tensor)
+    probs = model['net'](iso_image_tensor, 'test')
 
   # return segmentation mask
   _, mask = probs.max(1)
@@ -152,25 +152,32 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     mask = sitk.Image(image_size, sitk.sitkInt8)
     set_image_frame(mask, get_image_frame(image))
 
+    prob = sitk.Image(image_size, sitk.sitkFloat32)
+    set_image_frame(prob, get_image_frame(image))
+
     begin = time.time()
     partition_type = model['infer_cfg'].general.partition_type
     if partition_type == 'DISABLE':
-      # no partition, use the whole image
       image_voxel_center = [float(image_size[idx] / 2.0) for idx in range(3)]
       image_world_center = image.TransformContinuousIndexToPhysicalPoint(image_voxel_center)
 
       image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
       mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size, gpu_id > 0)
-      copy_image(mask_voi, image_world_center, image_physical_size, mask, 'NN')
+      copy_image(mask_voi, image_world_center, image_physical_size, mask)
+
+      if model.save_prob_index >= 0:
+        copy_image(prob_voi, image_world_center, image_physical_size, prob)
 
     elif partition_type == 'SIZE':
-      # image partition by fixed volume size
       image_partition_size = model['infer_cfg'].general.partition_size
       image_world_centers = image_partition_by_fixed_size(image, image_partition_size)
 
       for idx, image_world_center in enumerate(image_world_centers):
         mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size, gpu_id > 0)
-        copy_image(mask_voi, image_world_center, image_partition_size, mask, 'NN')
+        copy_image(mask_voi, image_world_center, image_partition_size, mask)
+
+        if model.save_prob_index >= 0:
+          copy_image(prob_voi, image_world_center, image_partition_size, prob)
 
         print('{:0.2f}%'.format((idx + 1) / len(image_world_centers) * 100))
 
@@ -181,13 +188,18 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     if not os.path.isdir(os.path.join(output_folder, case_name)):
       os.makedirs(os.path.join(output_folder, case_name))
 
+    begin = time.time()
     # save results
     if model.save_image:
       sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
 
-    sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
+    if model.save_prob_index >= 0:
+      sitk.WriteImage(prob, os.path.join(output_folder, case_name, 'prob_{}.mha'.format(model.save_prob_index)), True)
 
-    total_test_time = load_model_time + read_image_time + test_time
+    sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
+    save_time = time.time() - begin
+
+    total_test_time = load_model_time + read_image_time + test_time + save_time
     print('total test time: {:.2f}'.format(total_test_time))
 
 
@@ -196,33 +208,33 @@ def main():
     long_description = 'Inference engine for 3d medical image segmentation \n' \
                        'It supports multiple kinds of input:\n' \
                        '1. Single image\n' \
-                       '2. A text file containing paths of all testing images\n' \
-                       '3. A folder containing all testing images\n'
+                       '2. A text file containing paths of all testing images (TO-BE-DONE)\n'\
+                       '3. A folder containing all testing images (TO-BE-DONE) \n'
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input',
-                        default='/shenlab/lab_stor6/qinliu/CT_Dental/data/case_100_ct_patient/org.mha',
+                        default='/home/qinliu/debug/ROI.nii.gz',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0115_2020',
+                        default='/home/qinliu/debug/model_0122_2020_debug',
                         help='model root folder')
     parser.add_argument('-o', '--output',
-                        default='/home/qinliu19/results',
+                        default='/home/qinliu/debug/results',
                         help='output folder for segmentation')
     parser.add_argument('-n', '--seg_name',
                         default='result.mha',
                         help='the name of the segmentation result to be saved')
-    parser.add_argument('-g', '--gpu_id',
-                        default='6',
+    parser.add_argument('-g', '--gpu_id', type=int,
+                        default=-1,
                         help='the gpu id to run model, set to -1 if using cpu only.')
     parser.add_argument('--save_image',
                         help='whether to save original image', action="store_true")
-    parser.add_argument('--save_prob_index',
-                        default='-1',
+    parser.add_argument('--save_prob_index', type=int,
+                        default=1,
                         help='whether to save single prob map')
     args = parser.parse_args()
 
-    segmentation(args.input, args.model, args.output, args.seg_name, int(args.gpu_id), args.save_image,
+    segmentation(args.input, args.model, args.output, args.seg_name, args.gpu_id, args.save_image,
                  args.save_prob_index)
 
 

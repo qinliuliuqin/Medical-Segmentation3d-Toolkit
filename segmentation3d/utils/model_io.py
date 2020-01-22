@@ -89,6 +89,7 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride
     state = {'epoch':             epoch_idx,
              'batch':             batch_idx,
              'net':               cfg.net.name,
+             'dropout':           cfg.net.dropout_turn_on,
              'max_stride':        max_stride,
              'state_dict':        net.state_dict(),
              'spacing':           cfg.dataset.spacing,

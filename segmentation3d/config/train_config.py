@@ -13,16 +13,16 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
+__C.general.imseg_list = '/home/qinliu/debug/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0109_2020'
+__C.general.save_dir = '/home/qinliu/debug/model_0122_2020_debug'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
-__C.general.num_gpus = 2
+__C.general.num_gpus = 0
 
 # random seed used in training (debugging purpose)
 __C.general.seed = 0
@@ -38,17 +38,17 @@ __C.dataset = {}
 __C.dataset.num_classes = 3
 
 # the resolution on which segmentation is performed
-__C.dataset.spacing = [0.4, 0.4, 0.4]
+__C.dataset.spacing = [2.0, 2.0, 2.0]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [128, 128, 128]
+__C.dataset.crop_size = [32, 32, 32]
 
 # sampling method:
 # 1) GLOBAL: sampling crops randomly in the entire image domain
 # 2) MASK: sampling crops randomly within segmentation mask
 # 3) HYBRID: Sampling crops randomly with both GLOBAL and MASK methods
 # 4) CENTER: sampling crops in the image center
-__C.dataset.sampling_method = 'HYBRID'
+__C.dataset.sampling_method = 'CENTER'
 
 # translation augmentation (unit: mm)
 __C.dataset.random_translation = [5, 5, 5]
@@ -74,7 +74,7 @@ __C.loss = {}
 # the name of loss function to use
 # Focal: Focal loss, supports binary-class and multi-class segmentation
 # Dice: Dice Similarity Loss which supports binary and multi-class segmentation
-__C.loss.name = 'Dice'
+__C.loss.name = 'Focal'
 
 # the weight for each class including background class
 # weights will be normalized
@@ -93,6 +93,8 @@ __C.net = {}
 # the network name
 __C.net.name = 'vnet'
 
+# enable uncertainty by trun on drop out layers in the segmentation net
+__C.net.dropout_turn_on = True
 
 ##################################
 # training parameters
@@ -101,13 +103,13 @@ __C.net.name = 'vnet'
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 101
+__C.train.epochs = 1001
 
 # the number of samples in a batch
-__C.train.batchsize = 6
+__C.train.batchsize = 1
 
 # the number of threads for IO
-__C.train.num_threads = 6
+__C.train.num_threads = 1
 
 # the learning rate
 __C.train.lr = 1e-4
@@ -116,7 +118,7 @@ __C.train.lr = 1e-4
 __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
-__C.train.save_epochs = 100
+__C.train.save_epochs = 2
 
 
 ###################################
