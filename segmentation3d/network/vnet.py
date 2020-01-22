@@ -88,7 +88,7 @@ class OutputBlock(nn.Module):
 class SegmentationNet(nn.Module):
     """ volumetric segmentation network """
 
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, dropout_turn_on=False):
         super(SegmentationNet, self).__init__()
         self.in_block = InputBlock(in_channels, 16)
         self.down_32 = DownBlock(16, 1)
@@ -100,16 +100,43 @@ class SegmentationNet(nn.Module):
         self.up_64 = UpBlock(128, 64, 2)
         self.up_32 = UpBlock(64, 32, 1)
         self.out_block = OutputBlock(32, out_channels)
+        self.dropout_turn_on = dropout_turn_on
+        if self.dropout_turn_on:
+            self.dropout = nn.Dropout3d(p=0.5, inplace=False)
 
-    def forward(self, input):
+
+    def forward(self, input, mode='train'):
+
+        if self.dropout_turn_on and mode == 'test':
+            self.dropout.train()
+
         out16 = self.in_block(input)
         out32 = self.down_32(out16)
+
         out64 = self.down_64(out32)
+        if self.dropout_turn_on:
+            out64 = self.dropout(out64)
+
         out128 = self.down_128(out64)
+        if self.dropout_turn_on:
+            out128 = self.dropout(out128)
+
         out256 = self.down_256(out128)
+        if self.dropout_turn_on:
+            out256 = self.dropout(out256)
+
         out = self.up_256(out256, out128)
+        if self.dropout_turn_on:
+            out = self.dropout(out)
+
         out = self.up_128(out, out64)
+        if self.dropout_turn_on:
+            out = self.dropout(out)
+
         out = self.up_64(out, out32)
+        if self.dropout_turn_on:
+            out = self.dropout(out)
+
         out = self.up_32(out, out16)
         out = self.out_block(out)
         return out
