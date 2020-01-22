@@ -5,7 +5,7 @@ from torch import nn
 
 class FocalLoss(nn.Module):
 
-    def __init__(self, class_num, alpha=None, gamma=2, size_average=True):
+    def __init__(self, class_num, alpha=None, gamma=2, size_average=True, use_gpu=True):
 
         super(FocalLoss, self).__init__()
         if alpha is None:
@@ -15,11 +15,15 @@ class FocalLoss(nn.Module):
             self.alpha = torch.FloatTensor(alpha)
             self.alpha = self.alpha.unsqueeze(1)
             self.alpha = self.alpha / self.alpha.sum()
-        self.alpha = self.alpha.cuda()
+
+        if use_gpu:
+            self.alpha = self.alpha.cuda()
         self.gamma = gamma
         self.class_num = class_num
         self.size_average = size_average
-        self.one_hot_codes = torch.eye(self.class_num).cuda()
+        self.one_hot_codes = torch.eye(self.class_num)
+        if use_gpu:
+            self.one_hot_codes = self.one_hot_codes.cuda()
 
     def forward(self, input, target):
         # Assume that the input should has one of the following shapes:
