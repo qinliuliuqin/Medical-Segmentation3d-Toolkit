@@ -6,7 +6,7 @@ from segmentation3d.dataloader.image_tools import normalize_image, percentiles
 
 class FixedNormalizer(object):
   """
-  use fixed mean and stddev to normalize image intensities
+  Use fixed mean and stddev to normalize image intensities
   intensity = (intensity - mean) / stddev
   if clip is enabled:
       intensity = np.clip((intensity - mean) / stddev, -1, 1)
