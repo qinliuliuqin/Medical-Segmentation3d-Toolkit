@@ -1,6 +1,6 @@
 # Introduction
 
-Medical image 3D segmentation engine. This engine is based on Pytorch.
+Medical image 3D segmentation engine.
 
 # Usage
 
@@ -31,3 +31,7 @@ Medical image 3D segmentation engine. This engine is based on Pytorch.
    ```shell
    python seg_infer.py
    ```
+# Requirements
+Pytorch=1.1.0
+Numpy=1.17.2
+SimpleITK=1.2.3
