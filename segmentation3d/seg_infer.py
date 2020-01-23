@@ -36,39 +36,37 @@ def load_seg_model(model_folder, gpu_id=0):
   if gpu_id >= 0:
     os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
 
-  map_location = 'cpu'
-  if gpu_id >= 0:
-    map_location = None
-
-  # load network module
-  state = torch.load(chk_file, map_location=map_location)
-  net_module = importlib.import_module('segmentation3d.network.' + state['net'])
-  net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
-
-  if gpu_id >= 0:
+    # load network module
+    state = torch.load(chk_file)
+    net_module = importlib.import_module('segmentation3d.network.' + state['net'])
+    net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
     net = nn.parallel.DataParallel(net)
-
-  net.load_state_dict(state['state_dict'])
-  net.eval()
-
-  if gpu_id >= 0:
+    net.load_state_dict(state['state_dict'])
+    net.eval()
     net = net.cuda()
+
     del os.environ['CUDA_VISIBLE_DEVICES']
-    
+
+  else:
+    state = torch.load(chk_file, map_location='cpu')
+    net_module = importlib.import_module('segmentation3d.network.' + state['net'])
+    net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
+    net.load_state_dict(state['state_dict'])
+    net.eval()
+
   model.net = net
-  model.spacing = state['spacing']
-  model.max_stride = state['max_stride']
-  model.interpolation = state['interpolation']
+  model.spacing, model.max_stride, model.interpolation = state['spacing'], state['max_stride'], state['interpolation']
+
   model.crop_normalizers = []
   for crop_normalizer in state['crop_normalizers']:
     if crop_normalizer['type'] == 0:
-      model.crop_normalizers.append(FixedNormalizer(crop_normalizer['mean'],
-                                                    crop_normalizer['stddev'],
-                                                    crop_normalizer['clip']))
+      mean, stddev, clip = crop_normalizer['mean'], crop_normalizer['stddev'], crop_normalizer['clip']
+      model.crop_normalizers.append(FixedNormalizer(mean, stddev, clip))
+
     elif crop_normalizer['type'] == 1:
-      model.crop_normalizers.append(AdaptiveNormalizer(crop_normalizer['min_p'],
-                                                       crop_normalizer['max_p'],
-                                                       crop_normalizer['clip']))
+      min_p, max_p, clip = crop_normalizer['min_p'], crop_normalizer['max_p'], crop_normalizer['clip']
+      model.crop_normalizers.append(AdaptiveNormalizer(min_p, max_p, clip))
+
     else:
       raise ValueError('Unsupported normalization type.')
 
