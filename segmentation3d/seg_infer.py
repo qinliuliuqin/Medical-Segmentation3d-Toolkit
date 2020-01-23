@@ -73,14 +73,16 @@ def load_seg_model(model_folder, gpu_id=0):
   return model
 
 
-def segmentation_voi(image, model, center, size, use_gpu):
+def segmentation_voi(image, model, center, size, use_gpu, iter=5):
   """ Segment a volume of interest from an image. The volume will be cropped from the image first with the specified
   center and size, and then, the cropped block will be segmented by the segmentation model.
 
-  :param image: The input image
-  :param model: The segmentation model
-  :param center: The volume center in world coordinate, unit: mm
-  :param size:   The volume size in physical space, unit: mm
+  :param image: the input image
+  :param model: the segmentation model
+  :param center: the volume center in world coordinate, unit: mm
+  :param size: he volume size in physical space, unit: mm
+  :param use_gpu: whether to use gpu
+  :param iter: the number of iterations to run the forward
   """
   assert isinstance(image, sitk.Image)
 
@@ -103,20 +105,30 @@ def segmentation_voi(image, model, center, size, use_gpu):
 
   with torch.no_grad():
     probs = model['net'](iso_image_tensor, 'test')
+    probs = torch.unsqueeze(probs, 0)
+    for i in range(iter - 1):
+      probs = torch.cat((probs, torch.unsqueeze(model['net'](iso_image_tensor, 'test'), 0)), 0)
+    mean_probs, stddev_probs = torch.mean(probs, 0), torch.std(probs, 0)
 
   # return segmentation mask
-  _, mask = probs.max(1)
+  _, mask = mean_probs.max(1)
   mask = convert_tensor_to_image(mask[0].data, dtype=np.short)
   set_image_frame(mask, get_image_frame(iso_image))
 
-  # return probability map
-  prob_map = None
+  # return the average probability map
+  mean_prob = None
   save_prob_index = int(model['save_prob_index'])
   if save_prob_index >= 0:
-    prob_map = convert_tensor_to_image(probs[0][save_prob_index].data, dtype=np.float)
-    set_image_frame(prob_map, get_image_frame(iso_image))
+    mean_prob = convert_tensor_to_image(mean_probs[0][save_prob_index].data, dtype=np.float)
+    set_image_frame(mean_prob, get_image_frame(iso_image))
 
-  return mask, prob_map
+  # return the standard deviation of probability map
+  stddev_prob = None
+  if save_prob_index >= 0:
+    stddev_prob = convert_tensor_to_image(stddev_probs[0][save_prob_index].data, dtype=np.float)
+    set_image_frame(stddev_prob, get_image_frame(iso_image))
+
+  return mask, mean_prob, stddev_prob
 
 
 def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob_index):
@@ -150,8 +162,12 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     mask = sitk.Image(image_size, sitk.sitkInt8)
     set_image_frame(mask, get_image_frame(image))
 
-    prob = sitk.Image(image_size, sitk.sitkFloat32)
-    set_image_frame(prob, get_image_frame(image))
+    if model.save_prob_index >= 0:
+      prob = sitk.Image(image_size, sitk.sitkFloat32)
+      set_image_frame(prob, get_image_frame(image))
+
+      std_prob = sitk.Image(image_size, sitk.sitkFloat32)
+      set_image_frame(std_prob, get_image_frame(image))
 
     begin = time.time()
     partition_type = model['infer_cfg'].general.partition_type
@@ -160,22 +176,26 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       image_world_center = image.TransformContinuousIndexToPhysicalPoint(image_voxel_center)
 
       image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
-      mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_physical_size, gpu_id > 0)
+      mask_voi, mean_prob_voi, std_prob_voi = \
+        segmentation_voi(image, model, image_world_center, image_physical_size, gpu_id > 0)
       copy_image(mask_voi, image_world_center, image_physical_size, mask)
 
       if model.save_prob_index >= 0:
-        copy_image(prob_voi, image_world_center, image_physical_size, prob)
+        copy_image(mean_prob_voi, image_world_center, image_physical_size, prob)
+        copy_image(std_prob_voi, image_world_center, image_physical_size, std_prob)
 
     elif partition_type == 'SIZE':
       image_partition_size = model['infer_cfg'].general.partition_size
       image_world_centers = image_partition_by_fixed_size(image, image_partition_size)
 
       for idx, image_world_center in enumerate(image_world_centers):
-        mask_voi, prob_voi = segmentation_voi(image, model, image_world_center, image_partition_size, gpu_id > 0)
+        mask_voi, mean_prob_voi, std_prob_voi = \
+          segmentation_voi(image, model, image_world_center, image_partition_size, gpu_id > 0)
         copy_image(mask_voi, image_world_center, image_partition_size, mask)
 
         if model.save_prob_index >= 0:
-          copy_image(prob_voi, image_world_center, image_partition_size, prob)
+          copy_image(mean_prob_voi, image_world_center, image_partition_size, prob)
+          copy_image(std_prob_voi, image_world_center, image_partition_size, std_prob)
 
         print('{:0.2f}%'.format((idx + 1) / len(image_world_centers) * 100))
 
@@ -193,6 +213,8 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
     if model.save_prob_index >= 0:
       sitk.WriteImage(prob, os.path.join(output_folder, case_name, 'prob_{}.mha'.format(model.save_prob_index)), True)
+      sitk.WriteImage(std_prob, os.path.join(output_folder, case_name,
+                                             'uncertainty_{}.mha'.format(model.save_prob_index)), True)
 
     sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
     save_time = time.time() - begin
@@ -214,7 +236,7 @@ def main():
                         default='/home/qinliu/debug/ROI.nii.gz',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/home/qinliu/debug/model_0122_2020_debug',
+                        default='/home/qinliu/debug/model_0122_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
                         default='/home/qinliu/debug/results',
