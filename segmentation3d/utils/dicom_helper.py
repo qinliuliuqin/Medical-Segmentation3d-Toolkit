@@ -77,6 +77,62 @@ def write_dicom_series(image, directory, dtype=sitk.sitkInt16, tags=None):
     writer.Execute(image_slice)
 
 
+def write_binary_dicom_series(image, directory, in_label=1, out_label=100, dtype=sitk.sitkInt16, tags=None):
+  """
+  Write dicom series to disk, each dicom series is a binary mask
+  :param image: the input image volume in SimpleITK Image type
+  :param directory: the directory to save the dicom series
+  :param in_label: the input label, type: int
+  :param out_label: the output label, type: int
+  :param dtype: the output image type
+  :param tags: the tags shared by all dicom series
+  """
+  assert isinstance(image, sitk.Image)
+
+  # get the binary mask
+  binary_image_npy = sitk.GetArrayFromImage(image)
+  binary_image_npy[binary_image_npy != in_label] = 0
+  binary_image_npy[binary_image_npy == in_label] = out_label
+  binary_image = sitk.GetImageFromArray(binary_image_npy)
+  binary_image.CopyInformation(image)
+
+  writer = sitk.ImageFileWriter()
+  writer.KeepOriginalImageUIDOn()
+
+  if not os.path.isdir(directory):
+    os.makedirs(directory)
+
+  for i in range(binary_image.GetDepth()):
+    image_slice = binary_image[:, :, i]
+
+    castFilter = sitk.CastImageFilter()
+    castFilter.SetOutputPixelType(dtype)
+    image_slice = castFilter.Execute(image_slice)
+
+    # Tags shared by the series.
+    if tags is not None:
+      for key in tags.keys():
+        image_slice.SetMetaData(key, tags[key])
+
+    direction = binary_image.GetDirection()
+    internal_tags = {"0008|0031": time.strftime("%H%M%S"), # modification time,
+                     "0008|0021": time.strftime("%Y%m%d"), # modification date
+                     "0020|000e": "0.0.000.0.0.0000000.0.0000.0.00000000.00000000",
+                     "0020|0037": "\\".join(map(str, (direction[0], direction[3], direction[6],
+                                                      direction[1], direction[4], direction[7]))),
+                     "0020|0032": '\\'.join(map(str, binary_image.TransformIndexToPhysicalPoint((0, 0, i)))),
+                     "0018|0050": str(binary_image.GetSpacing()[2]),
+                     "0020|0013": str(i)
+                     }
+
+    for key in internal_tags.keys():
+      image_slice.SetMetaData(key, internal_tags[key])
+
+    # Write to the output directory and add the extension dcm, to force writing in DICOM format.
+    writer.SetFileName(os.path.join(directory, str(i) + '.dcm'))
+    writer.Execute(image_slice)
+
+
 def dicom_tags_dict(modality='CT',
                     image_type=r'DERIVED\\SECONDARY',
                     conversion_type='DV',
