@@ -45,12 +45,13 @@ def load_checkpoint(epoch_idx, net, opt, save_dir, gpu_id=0):
     if gpu_id >= 0:
       os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
 
-    map_location = 'cpu'
-    if gpu_id >= 0:
-      map_location = None
+    map_location = 'cpu' if gpu_id >= 0 else None
 
     state = torch.load(chk_file, map_location=map_location)
-    net = nn.parallel.DataParallel(net)
+
+    if gpu_id >= 0:
+      net = nn.parallel.DataParallel(net)
+
     net.load_state_dict(state['state_dict'])
 
     # load optimizer state
