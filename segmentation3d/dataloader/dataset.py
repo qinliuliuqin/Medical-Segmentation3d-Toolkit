@@ -86,7 +86,7 @@ class SegmentationDataset(Dataset):
         """
         assert isinstance(image, sitk.Image)
 
-        origin  = image.GetOrigin()
+        origin = image.GetOrigin()
         im_size_mm = [image.GetSize()[idx] * image.GetSpacing()[idx] for idx in range(3)]
         crop_size_mm = self.crop_size * self.spacing
 
