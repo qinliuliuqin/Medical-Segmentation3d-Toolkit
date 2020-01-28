@@ -245,6 +245,9 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
         iso_mask = copy_image(roi_mask, start_voxel, end_voxel, iso_mask)
 
+      if model.save_prob_index >= 0:
+        iso_uncertainty = copy_image(roi_uncertainty, start_voxel, end_voxel, iso_uncertainty)
+
       elif partition_type == 'SIZE':
         partition_size = model['infer_cfg'].general.partition_size
         max_stride = model['max_stride']
@@ -257,6 +260,9 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
             segmentation_roi(model, iso_image, start_voxel, end_voxel, gpu_id > 0, 5)
 
           iso_mask = copy_image(roi_mask, start_voxel, end_voxel, iso_mask)
+
+          if model.save_prob_index >= 0:
+            iso_uncertainty = copy_image(roi_uncertainty, start_voxel, end_voxel, iso_uncertainty)
 
           print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
 
@@ -280,6 +286,10 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
       sitk.WriteImage(iso_mask, os.path.join(output_folder, case_name, seg_name), True)
       save_time = time.time() - begin
+
+      if model.save_prob_index >= 0:
+        sitk.WriteImage(iso_uncertainty, os.path.join(output_folder, case_name,
+                                                      'uncertainty_{}.mha'.format(model.save_prob_index)), True)
 
       total_test_time = load_model_time + read_image_time + test_time + save_time
       print('total test time: {:.2f}'.format(total_test_time))
