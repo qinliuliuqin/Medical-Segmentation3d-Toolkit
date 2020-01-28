@@ -139,47 +139,22 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
     return outimage
 
 
-def copy_image(source_image, voi_center, voi_size, target_image, interpolation='NN'):
-    """
-    Copy data from source image to target image in the volume of interest.
-
-    :param source_image: the source image.
-    :param voi_center: the center of the interested volume, unit: mm
-    :param voi_size: the size of the interested volume, unit: mm
-    :param target_image: the target image
-    :param interpolation: the interpolation type, only support 'NN' yet.
-    :return None
-    """
+def copy_image(source_image, target_start_voxel, target_end_voxel, target_image):
     assert isinstance(source_image, sitk.Image)
     assert isinstance(target_image, sitk.Image)
 
-    image_size = target_image.GetSize()
+    for idx in range(3):
+        target_start_voxel[idx] = int(target_start_voxel[idx])
+        target_end_voxel[idx] = int(target_end_voxel[idx])
 
-    sp_world = [float(voi_center[idx] - voi_size[idx] / 2.0) for idx in range(3)]
-    sp_voxel = np.floor(target_image.TransformPhysicalPointToContinuousIndex(sp_world))
-    sp_voxel = [int(min(max(0, sp_voxel[idx]), image_size[idx] - 1)) for idx in range(3)]
+    target_start_world = target_image.TransformIndexToPhysicalPoint(target_start_voxel)
+    source_start_voxel = source_image.TransformPhysicalPointToIndex(target_start_world)
+    paste_size = [int(target_end_voxel[idx] - target_start_voxel[idx]) for idx in range(3)]
 
-    ep_world = [float(sp_world[idx] + voi_size[idx]) for idx in range(3)]
-    ep_voxel = np.ceil(target_image.TransformPhysicalPointToContinuousIndex(ep_world))
-    ep_voxel = [int(min(max(0, ep_voxel[idx]), image_size[idx] - 1)) for idx in range(3)]
-
-    source_size = source_image.GetSize()
-    for idx in range(sp_voxel[0], ep_voxel[0] + 1):
-        for idy in range(sp_voxel[1], ep_voxel[1] + 1):
-            for idz in range(sp_voxel[2], ep_voxel[2] + 1):
-                world = target_image.TransformIndexToPhysicalPoint([idx, idy, idz])
-
-                # Nearest Neighbor interpolation
-                voxel_in_source = source_image.TransformPhysicalPointToContinuousIndex(world)
-                voxel_in_source_nn = [int(round(voxel_in_source[idx])) for idx in range(3)]
-
-                if voxel_in_source_nn[0] >= 0 and voxel_in_source_nn[0] < source_size[0] and \
-                    voxel_in_source_nn[1] >= 0 and voxel_in_source_nn[1] < source_size[1] and \
-                    voxel_in_source_nn[2] >= 0 and voxel_in_source_nn[2] < source_size[2]:
-                    target_image[idx, idy, idz] = source_image.GetPixel(voxel_in_source_nn)
+    return sitk.Paste(target_image, source_image, paste_size, source_start_voxel, target_start_voxel)
 
 
-def image_partition_by_fixed_size(image, partition_size):
+def image_partition_by_fixed_size(image, partition_size, max_stride):
     """
     Split image by fixed size.
 
@@ -188,24 +163,28 @@ def image_partition_by_fixed_size(image, partition_size):
     :return partition_centers: the list containing center voxel of each partition
     """
     image_size, image_spacing, image_origin = image.GetSize(), image.GetSpacing(), image.GetOrigin()
-    image_physical_size = [float(image_size[idx] * image_spacing[idx]) for idx in range(3)]
 
-    partition_number = [int(np.ceil(image_physical_size[idx] / partition_size[idx])) for idx in range(3)]
-    partition_centers = []
+    box_size = [int(partition_size[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
+    for idx in range(3):
+        if box_size[idx] % max_stride:
+            box_size[idx] = max_stride * (box_size[idx] // max_stride + 1)
+
+    partition_number = [int(np.ceil(image_size[idx] / box_size[idx])) for idx in range(3)]
+    start_voxels, end_voxels = [], []
     for idx in range(0, partition_number[0]):
         for idy in range(0, partition_number[1]):
             for idz in range(0, partition_number[2]):
-                center = [float(image_origin[0] + partition_size[0] * (0.5 + idx)),
-                          float(image_origin[1] + partition_size[1] * (0.5 + idy)),
-                          float(image_origin[2] + partition_size[2] * (0.5 + idz))]
+                start_voxel = [idx * box_size[0], idy * box_size[1], idz * box_size[2]]
+                end_voxel = [(idx + 1) * box_size[0], (idy + 1) * box_size[1], (idz + 1) * box_size[2]]
+                for dim in range(3):
+                    if end_voxel[dim] > image_size[dim]:
+                        end_voxel[dim] = image_size[dim]
+                        start_voxel[dim] = end_voxel[dim] - box_size[dim]
 
-                for index in range(3):
-                    center_maximum = image_origin[index] + image_physical_size[index] - partition_size[index] / 2.0
-                    center[index] = min(center[index], center_maximum)
+                start_voxels.append(start_voxel)
+                end_voxels.append(end_voxel)
 
-                partition_centers.append(center)
-
-    return partition_centers
+    return start_voxels, end_voxels
 
 
 def normalize_image(image, mean, std, clip, clip_min=-1.0, clip_max=1.0):
@@ -314,3 +293,29 @@ def convert_tensor_to_image(tensor, dtype):
         raise ValueError('Only supports 3-dimsional or 4-dimensional image volume')
 
     return image
+
+
+def resample_spacing(image, resampled_spacing, interp_method):
+    """
+    Resample the spacing of image
+    """
+    assert isinstance(image, sitk.Image)
+
+    identity_transform = sitk.Transform(3, sitk.sitkIdentity)
+    image_spacing = image.GetSpacing()
+    image_size = image.GetSize()
+    image_origin = [float(image.GetOrigin()[idx]) for idx in range(3)]
+    image_direction = [float(image.GetDirection()[idx]) for idx in range(9)]
+    for idx in range(3):
+        resampled_spacing[idx] = float(resampled_spacing[idx])
+    resampled_size = [int(image_size[idx] * image_spacing[idx] / resampled_spacing[idx] + 0.5) for idx in range(3)]
+
+    if interp_method == 'LINEAR':
+        interp_method = sitk.sitkLinear
+    elif interp_method == 'NN':
+        interp_method = sitk.sitkNearestNeighbor
+    else:
+        raise ValueError('Unsupported interpolation type.')
+
+    return sitk.Resample(image, resampled_size, identity_transform, interp_method, image_origin, resampled_spacing,
+                         image_direction)
