@@ -295,20 +295,11 @@ def convert_tensor_to_image(tensor, dtype):
     return image
 
 
-def resample_spacing(image, resampled_spacing, interp_method):
-    """
-    Resample the spacing of image
+def resample(image, reference, interp_method):
+    """ Resample image based on inference image
     """
     assert isinstance(image, sitk.Image)
-
-    identity_transform = sitk.Transform(3, sitk.sitkIdentity)
-    image_spacing = image.GetSpacing()
-    image_size = image.GetSize()
-    image_origin = [float(image.GetOrigin()[idx]) for idx in range(3)]
-    image_direction = [float(image.GetDirection()[idx]) for idx in range(9)]
-    for idx in range(3):
-        resampled_spacing[idx] = float(resampled_spacing[idx])
-    resampled_size = [int(image_size[idx] * image_spacing[idx] / resampled_spacing[idx] + 0.5) for idx in range(3)]
+    assert isinstance(reference, sitk.Image)
 
     if interp_method == 'LINEAR':
         interp_method = sitk.sitkLinear
@@ -317,5 +308,35 @@ def resample_spacing(image, resampled_spacing, interp_method):
     else:
         raise ValueError('Unsupported interpolation type.')
 
-    return sitk.Resample(image, resampled_size, identity_transform, interp_method, image_origin, resampled_spacing,
-                         image_direction)
+    identity_transform = sitk.Transform(3, sitk.sitkIdentity)
+    return sitk.Resample(image, reference, identity_transform, interp_method)
+
+
+def resample_spacing(image, resampled_spacing, interp_method):
+    """ Resample the spacing of image
+
+    :param image: the input image.
+    :param resampled_spacing: the spacing of the resampled output image.
+    :param interp_method: the interpolation method.
+    :return the resampled image
+    """
+    assert isinstance(image, sitk.Image)
+
+    in_spacing = image.GetSpacing()
+    in_size = image.GetSize()
+    in_origin = [float(image.GetOrigin()[idx]) for idx in range(3)]
+    in_direction = [float(image.GetDirection()[idx]) for idx in range(9)]
+
+    out_spacing = [float(resampled_spacing[idx]) for idx in range(3)]
+    out_size = [int(in_size[idx] * in_spacing[idx] / out_spacing[idx] + 0.5) for idx in range(3)]
+
+    if interp_method == 'LINEAR':
+        interp_method = sitk.sitkLinear
+    elif interp_method == 'NN':
+        interp_method = sitk.sitkNearestNeighbor
+    else:
+        raise ValueError('Unsupported interpolation type.')
+
+    identity_transform = sitk.Transform(3, sitk.sitkIdentity)
+    return sitk.Resample(image, out_size, identity_transform, interp_method, in_origin, resampled_spacing,
+                         in_direction)
