@@ -105,9 +105,9 @@ class SegmentationNet(nn.Module):
             self.dropout = nn.Dropout3d(p=0.5, inplace=False)
 
 
-    def forward(self, input, mode='train'):
+    def forward(self, input):
 
-        if self.dropout_turn_on and mode == 'test':
+        if self.dropout_turn_on:
             self.dropout.train()
 
         out16 = self.in_block(input)

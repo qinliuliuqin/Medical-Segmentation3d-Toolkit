@@ -136,10 +136,10 @@ def segmentation_roi(model, iso_image, start_voxel, end_voxel, use_gpu, iter):
     roi_image_tensor = roi_image_tensor.cuda()
 
   with torch.no_grad():
-    probs = model['net'](roi_image_tensor, 'test')
+    probs = model['net'](roi_image_tensor)
     probs = torch.unsqueeze(probs, 0)
     for i in range(iter - 1):
-      probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor, 'test'), 0)), 0)
+      probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
     mean_probs, stddev_probs = torch.mean(probs, 0), torch.std(probs, 0)
 
   # return segmentation mask
@@ -245,8 +245,8 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
         iso_mask = copy_image(roi_mask, start_voxel, end_voxel, iso_mask)
 
-      if model.save_prob_index >= 0:
-        iso_uncertainty = copy_image(roi_uncertainty, start_voxel, end_voxel, iso_uncertainty)
+        if model.save_prob_index >= 0:
+          iso_uncertainty = copy_image(roi_uncertainty, start_voxel, end_voxel, iso_uncertainty)
 
       elif partition_type == 'SIZE':
         partition_size = model['infer_cfg'].general.partition_size
@@ -308,7 +308,7 @@ def main():
                         default='/home/qinliu/debug/org.mha',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/home/qinliu/debug/model_0128_2020_focal',
+                        default='/home/qinliu/debug/model_0128_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
                         default='/home/qinliu/debug/results',

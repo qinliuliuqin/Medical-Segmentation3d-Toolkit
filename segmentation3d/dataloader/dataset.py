@@ -81,8 +81,8 @@ class SegmentationDataset(Dataset):
 
     def global_sample(self, image):
         """ random sample a position in the image
-        :param image: a image3d object
-        :return: a position in world coordinate
+        :param image: a SimpleITK image object which should be in the RAI coordinate
+        :return: a world position in the RAI coordinate
         """
         assert isinstance(image, sitk.Image)
 
@@ -154,7 +154,7 @@ class SegmentationDataset(Dataset):
                     center = self.global_sample(seg)
 
         else:
-            raise ValueError('Only GLOBAL, MASK and HYBRID are supported as sampling methods')
+            raise ValueError('Only CENTER, GLOBAL, MASK and HYBRID are supported as sampling methods')
 
         # random translation
         center += np.random.uniform(-self.random_translation, self.random_translation, size=[3])
