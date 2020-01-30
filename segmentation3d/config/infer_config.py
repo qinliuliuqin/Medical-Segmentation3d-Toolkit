@@ -24,7 +24,11 @@ __C.general.remove_small_cc = 0
 # Options:
 # 1) SIZE:    partition to blocks with specified size (unit: mm), set partition_size = [size_x, size_y, size_z]
 # 2) DISABLE: no partition
-__C.general.partition_type = 'DISABLE'
+__C.general.partition_type = 'SIZE'
 
 # if partition type = 'SIZE', set the partition size (unit: mm).
-__C.general.partition_size = [48, 48, 48]
+# it is recommended to set this value as the same with the physical cropping size in the training phase
+__C.general.partition_size = [64, 64, 64]
+
+# number of iteration in bayesian segmentation, set it as 1 for non-bayesian segmentation model
+__C.general.bayesian_iteration = 1

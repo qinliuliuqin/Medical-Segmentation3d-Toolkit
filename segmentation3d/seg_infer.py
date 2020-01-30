@@ -11,7 +11,7 @@ from easydict import EasyDict as edict
 
 from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
-from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, \
+from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, resample, \
   convert_image_to_tensor, convert_tensor_to_image, copy_image, image_partition_by_fixed_size, resample_spacing
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 
@@ -123,7 +123,19 @@ def load_seg_model(model_folder, gpu_id=0):
   return model
 
 
-def segmentation_roi(model, iso_image, start_voxel, end_voxel, use_gpu, iter):
+def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu, save_prob_index):
+  """ Segment the volume of interest
+  :param model:           the loaded segmentation model.
+  :param iso_image:       the image volume that has the same spacing with the model's resampling spacing.
+  :param start_voxel:     the start voxel of the volume of interest (inclusive).
+  :param end_voxel:       the end voxel of the volume of interest (exclusive).
+  :param use_gpu:         whether to use gpu or not, bool type.
+  :param save_prob_index: the index of class to save its mean probability map
+  :return:
+    mask:                 the segmentation mask
+    mean_prob:            the mean probability map of a given class
+    std_map:              the standard deviation map of the mean probability map of the given class
+  """
   assert isinstance(iso_image, sitk.Image)
 
   roi_image = iso_image[start_voxel[0]:end_voxel[0], start_voxel[1]:end_voxel[1], start_voxel[2]:end_voxel[2]]
@@ -135,10 +147,11 @@ def segmentation_roi(model, iso_image, start_voxel, end_voxel, use_gpu, iter):
   if use_gpu:
     roi_image_tensor = roi_image_tensor.cuda()
 
+  bayesian_iteration = model['infer_cfg'].general.bayesian_iteration
   with torch.no_grad():
     probs = model['net'](roi_image_tensor)
     probs = torch.unsqueeze(probs, 0)
-    for i in range(iter - 1):
+    for i in range(bayesian_iteration - 1):
       probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
     mean_probs, stddev_probs = torch.mean(probs, 0), torch.std(probs, 0)
 
@@ -149,18 +162,17 @@ def segmentation_roi(model, iso_image, start_voxel, end_voxel, use_gpu, iter):
 
   # return the average probability map
   mean_prob = None
-  save_prob_index = int(model['save_prob_index'])
   if save_prob_index >= 0:
     mean_prob = convert_tensor_to_image(mean_probs[0][save_prob_index].data, dtype=np.float)
     mean_prob.CopyInformation(roi_image)
 
   # return the standard deviation of probability map
-  uncertainty_map = None
+  std_map = None
   if save_prob_index >= 0:
-    uncertainty_map = convert_tensor_to_image(stddev_probs[0][save_prob_index].data, dtype=np.float)
-    uncertainty_map.CopyInformation(roi_image)
+    std_map = convert_tensor_to_image(stddev_probs[0][save_prob_index].data, dtype=np.float)
+    std_map.CopyInformation(roi_image)
 
-  return mask, mean_prob, uncertainty_map
+  return mask, mean_prob, std_map
 
 
 def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob_index):
@@ -175,11 +187,9 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     :return: None
     """
 
-    begin = time.time()
     # load model
+    begin = time.time()
     model = load_seg_model(model_folder, gpu_id)
-    model.save_image = save_image
-    model.save_prob_index = save_prob_index
     load_model_time = time.time() - begin
 
     # load test images
@@ -211,63 +221,44 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       image = sitk.ReadImage(file_path, sitk.sitkFloat32)
       read_image_time = time.time() - begin
 
-      # set mask and prob
-      mask = sitk.Image(image.GetSize(), sitk.sitkInt8)
-      mask.CopyInformation(image)
-
-      if model.save_prob_index >= 0:
-        prob = sitk.Image(image.GetSize(), sitk.sitkFloat32)
-        prob.CopyInformation(image)
-
-        std_prob = sitk.Image(image.GetSize(), sitk.sitkFloat32)
-        std_prob.CopyInformation(image)
-
       # set iso mask and prob
       iso_image = resample_spacing(image, model['spacing'], model['interpolation'])
-
       iso_mask = sitk.Image(iso_image.GetSize(), sitk.sitkInt8)
       iso_mask.CopyInformation(iso_image)
 
-      if model.save_prob_index >= 0:
-        iso_prob = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
-        iso_prob.CopyInformation(iso_image)
+      if save_prob_index >= 0:
+        iso_mean_prob = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
+        iso_mean_prob.CopyInformation(iso_image)
 
-        iso_uncertainty = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
-        iso_uncertainty.CopyInformation(iso_image)
+        iso_std_map = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
+        iso_std_map.CopyInformation(iso_image)
 
-      begin = time.time()
       partition_type = model['infer_cfg'].general.partition_type
       if partition_type == 'DISABLE':
-        start_voxel = [0, 0, 0]
-        end_voxel = [int(iso_image.GetSize()[idx]) for idx in range(3)]
-        roi_mask, roi_prob, roi_uncertainty = \
-          segmentation_roi(model, iso_image, start_voxel, end_voxel, gpu_id > 0, 5)
-
-        iso_mask = copy_image(roi_mask, start_voxel, end_voxel, iso_mask)
-
-        if model.save_prob_index >= 0:
-          iso_uncertainty = copy_image(roi_uncertainty, start_voxel, end_voxel, iso_uncertainty)
+        start_voxels = [[0, 0, 0]]
+        end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
 
       elif partition_type == 'SIZE':
         partition_size = model['infer_cfg'].general.partition_size
         max_stride = model['max_stride']
         start_voxels, end_voxels = image_partition_by_fixed_size(iso_image, partition_size, max_stride)
 
-        for idx in range(len(start_voxels)):
-          start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
-
-          roi_mask, roi_prob, roi_uncertainty = \
-            segmentation_roi(model, iso_image, start_voxel, end_voxel, gpu_id > 0, 5)
-
-          iso_mask = copy_image(roi_mask, start_voxel, end_voxel, iso_mask)
-
-          if model.save_prob_index >= 0:
-            iso_uncertainty = copy_image(roi_uncertainty, start_voxel, end_voxel, iso_uncertainty)
-
-          print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
-
       else:
         raise ValueError('Unsupported partition type!')
+
+      begin = time.time()
+      for idx in range(len(start_voxels)):
+        start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
+
+        voi_mask, voi_mean_prob, voi_std_map = \
+          segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0, save_prob_index)
+        iso_mask = copy_image(voi_mask, start_voxel, end_voxel, iso_mask)
+
+        if save_prob_index >= 0:
+          iso_mean_prob = copy_image(voi_mean_prob, start_voxel, end_voxel, iso_mean_prob)
+          iso_std_map = copy_image(voi_std_map, start_voxel, end_voxel, iso_std_map)
+
+        print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
       test_time = time.time() - begin
 
       case_name = file_name_list[i]
@@ -275,23 +266,31 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         os.makedirs(os.path.join(output_folder, case_name))
 
       begin = time.time()
+      # resample mask to the original spacing
+      mask = resample(iso_mask, image, interp_method='NN')
+
+      # pick the largest component
+      # TO BE DONE
+      post_processing_time = time.time() - begin
+
+      begin = time.time()
       # save results
-      if model.save_image:
+      sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name))
+
+      if save_image:
         sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
 
-      # if model.save_prob_index >= 0:
-      #   sitk.WriteImage(prob, os.path.join(output_folder, case_name, 'prob_{}.mha'.format(model.save_prob_index)), True)
-      #   sitk.WriteImage(std_prob, os.path.join(output_folder, case_name,
-      #                                          'uncertainty_{}.mha'.format(model.save_prob_index)), True)
+      if save_prob_index >= 0:
+        mean_prob = resample(iso_mean_prob, image, interp_method='LINEAR')
+        mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(save_prob_index))
+        sitk.WriteImage(mean_prob, mean_prob_save_path, True)
 
-      sitk.WriteImage(iso_mask, os.path.join(output_folder, case_name, seg_name), True)
+        std_map = resample(iso_std_map, image, interp_method='LINEAR')
+        std_map_save_path = os.path.join(output_folder, case_name, 'std_prob_{}.mha'.format(save_prob_index))
+        sitk.WriteImage(std_map, std_map_save_path, True)
       save_time = time.time() - begin
 
-      if model.save_prob_index >= 0:
-        sitk.WriteImage(iso_uncertainty, os.path.join(output_folder, case_name,
-                                                      'uncertainty_{}.mha'.format(model.save_prob_index)), True)
-
-      total_test_time = load_model_time + read_image_time + test_time + save_time
+      total_test_time = load_model_time + read_image_time + test_time + post_processing_time + save_time
       print('total test time: {:.2f}'.format(total_test_time))
 
 
@@ -308,7 +307,7 @@ def main():
                         default='/home/qinliu/debug/org.mha',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/home/qinliu/debug/model_0128_2020',
+                        default='/home/qinliu/debug/model_0129_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
                         default='/home/qinliu/debug/results',
