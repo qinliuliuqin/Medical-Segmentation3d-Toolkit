@@ -275,7 +275,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
       begin = time.time()
       # save results
-      sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name))
+      sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
 
       if save_image:
         sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
