@@ -304,24 +304,24 @@ def main():
     parser = argparse.ArgumentParser(description=long_description)
 
     parser.add_argument('-i', '--input',
-                        default='/home/qinliu/debug/org.mha',
+                        default='/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt',
                         help='input folder/file for intensity images')
     parser.add_argument('-m', '--model',
-                        default='/home/qinliu/debug/model_0129_2020',
+                        default='/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0130_2020',
                         help='model root folder')
     parser.add_argument('-o', '--output',
-                        default='/home/qinliu/debug/results',
+                        default='/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0129_2020/epoch_2500',
                         help='output folder for segmentation')
     parser.add_argument('-n', '--seg_name',
                         default='result.mha',
                         help='the name of the segmentation result to be saved')
     parser.add_argument('-g', '--gpu_id', type=int,
-                        default=-1,
+                        default=7,
                         help='the gpu id to run model, set to -1 if using cpu only.')
     parser.add_argument('--save_image',
                         help='whether to save original image', action="store_true")
     parser.add_argument('--save_prob_index', type=int,
-                        default=1,
+                        default=-1,
                         help='whether to save single prob map')
     args = parser.parse_args()
 
