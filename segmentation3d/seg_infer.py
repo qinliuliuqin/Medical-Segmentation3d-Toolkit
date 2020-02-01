@@ -101,6 +101,7 @@ def load_seg_model(model_folder, gpu_id=0):
     state = torch.load(chk_file, map_location='cpu')
     net_module = importlib.import_module('segmentation3d.network.' + state['net'])
     net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
+    net = nn.parallel.DataParallel(net)
     net.load_state_dict(state['state_dict'])
     net.eval()
 
@@ -274,6 +275,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       mean_probs_tensor = convert_image_to_tensor(mean_probs)
       _, mask = mean_probs_tensor.max(0)
       mask = convert_tensor_to_image(mask, dtype=np.int8)
+      mask.CopyInformation(image)
       test_time = time.time() - begin
 
       begin = time.time()
@@ -316,8 +318,8 @@ def main():
                        '3. A folder containing all testing images\n'
 
     default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
-    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0130_2020_debug'
-    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0130_2020_debug/epoch_2000'
+    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0201_2020'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0201_2020'
     default_seg_name = 'result.mha'
     default_gpu_id = -1
 
