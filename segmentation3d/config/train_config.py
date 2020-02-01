@@ -16,7 +16,7 @@ __C.general = {}
 __C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0130_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0201_2020/fine'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
@@ -41,7 +41,7 @@ __C.dataset.num_classes = 3
 __C.dataset.spacing = [0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [320, 320, 32]
+__C.dataset.crop_size = [128, 128, 128]
 
 # sampling method:
 # 1) GLOBAL: sampling crops randomly in the entire image domain
@@ -51,7 +51,7 @@ __C.dataset.crop_size = [320, 320, 32]
 __C.dataset.sampling_method = 'HYBRID'
 
 # translation augmentation (unit: mm)
-__C.dataset.random_translation = [15, 15, 5]
+__C.dataset.random_translation = [5, 5, 5]
 
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
@@ -62,7 +62,7 @@ __C.dataset.interpolation = 'LINEAR'
 # one normalizer corresponds to one input modality
 # 1) FixedNormalizer: use fixed mean and standard deviation to normalize intensity
 # 2) AdaptiveNormalizer: use minimum and maximum intensity of crop to normalize intensity
-__C.dataset.crop_normalizers = [AdaptiveNormalizer(clip=True)]
+__C.dataset.crop_normalizers = [AdaptiveNormalizer(clip=False)]
 
 ##################################
 # training loss
@@ -77,7 +77,7 @@ __C.loss.name = 'Focal'
 
 # the weight for each class including background class
 # weights will be normalized
-__C.loss.obj_weight = [1/3, 1/3, 1/3]
+__C.loss.obj_weight = [1/6, 1/3, 1/3]
 
 # the gamma parameter in focal loss
 __C.loss.focal_gamma = 2
@@ -93,7 +93,7 @@ __C.net = {}
 __C.net.name = 'vnet'
 
 # enable uncertainty by trun on drop out layers in the segmentation net
-__C.net.dropout_turn_on = True
+__C.net.dropout_turn_on = False
 
 ##################################
 # training parameters
@@ -105,10 +105,10 @@ __C.train = {}
 __C.train.epochs = 5001
 
 # the number of samples in a batch
-__C.train.batchsize = 12
+__C.train.batchsize = 18
 
 # the number of threads for IO
-__C.train.num_threads = 12
+__C.train.num_threads = 18
 
 # the learning rate
 __C.train.lr = 1e-4
