@@ -140,6 +140,9 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
 
 
 def copy_image(source_image, target_start_voxel, target_end_voxel, target_image):
+    """
+    Copy from the source image to the target image in a given rectangle region.
+    """
     assert isinstance(source_image, sitk.Image)
     assert isinstance(target_image, sitk.Image)
 
@@ -154,12 +157,13 @@ def copy_image(source_image, target_start_voxel, target_end_voxel, target_image)
     return sitk.Paste(target_image, source_image, paste_size, source_start_voxel, target_start_voxel)
 
 
-def image_partition_by_fixed_size(image, partition_size, max_stride):
+def image_partition_by_fixed_size(image, partition_size, partition_stride, max_stride):
     """
     Split image by fixed size.
 
     :param image: the input image to be spilt
     :param partition_size: the physical size of each partition
+    :param partition_stride: the partition stride
     :return partition_centers: the list containing center voxel of each partition
     """
     image_size, image_spacing, image_origin = image.GetSize(), image.GetSpacing(), image.GetOrigin()
@@ -169,11 +173,11 @@ def image_partition_by_fixed_size(image, partition_size, max_stride):
         if box_size[idx] % max_stride:
             box_size[idx] = max_stride * (box_size[idx] // max_stride + 1)
 
-    partition_number = [int(np.ceil(image_size[idx] / box_size[idx])) for idx in range(3)]
+    num_partitions = [int(np.ceil((image_size[idx] - box_size[idx]) / partition_stride[idx] + 1)) for idx in range(3)]
     start_voxels, end_voxels = [], []
-    for idx in range(0, partition_number[0]):
-        for idy in range(0, partition_number[1]):
-            for idz in range(0, partition_number[2]):
+    for idx in range(0, num_partitions[0]):
+        for idy in range(0, num_partitions[1]):
+            for idz in range(0, num_partitions[2]):
                 start_voxel = [idx * box_size[0], idy * box_size[1], idz * box_size[2]]
                 end_voxel = [(idx + 1) * box_size[0], (idy + 1) * box_size[1], (idz + 1) * box_size[2]]
                 for dim in range(3):
@@ -256,7 +260,7 @@ def convert_image_to_tensor(image):
             tmp = torch.unsqueeze(tmp, 0)
             tmp = tmp.float()
             tensor.append(tmp)
-            tensor = torch.cat(tensor, 0)
+        tensor = torch.cat(tensor, 0)
     else:
         raise ValueError('unknown input type')
 
@@ -340,3 +344,27 @@ def resample_spacing(image, resampled_spacing, interp_method):
     identity_transform = sitk.Transform(3, sitk.sitkIdentity)
     return sitk.Resample(image, out_size, identity_transform, interp_method, in_origin, resampled_spacing,
                          in_direction)
+
+
+def pick_largest_connected_component(mask):
+    """ Pick the largest connected component.
+    """
+
+    pass
+
+
+def add_image_value(image, start_voxel, end_voxel, value):
+    """ Add value to the input image in a given volume.
+    """
+    assert isinstance(image, sitk.Image)
+
+    for idx in range(3):
+        start_voxel[idx] = int(start_voxel[idx])
+        end_voxel[idx] = int(end_voxel[idx])
+
+    image_npy = sitk.GetArrayFromImage(image)
+    image_npy[start_voxel[2]:end_voxel[2], start_voxel[1]:end_voxel[1], start_voxel[0]:end_voxel[0]] += value
+    added_image = sitk.GetImageFromArray(image_npy)
+    added_image.CopyInformation(image)
+
+    return added_image
