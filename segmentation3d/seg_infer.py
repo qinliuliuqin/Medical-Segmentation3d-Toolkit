@@ -11,8 +11,8 @@ from easydict import EasyDict as edict
 
 from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
-from segmentation3d.dataloader.image_tools import get_image_frame, set_image_frame, crop_image, resample, \
-  convert_image_to_tensor, convert_tensor_to_image, copy_image, image_partition_by_fixed_size, resample_spacing
+from segmentation3d.dataloader.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
+  copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 
 
@@ -106,6 +106,7 @@ def load_seg_model(model_folder, gpu_id=0):
 
   model.net = net
   model.spacing, model.max_stride, model.interpolation = state['spacing'], state['max_stride'], state['interpolation']
+  model.in_channels, model.out_channels = state['in_channels'], state['out_channels']
 
   model.crop_normalizers = []
   for crop_normalizer in state['crop_normalizers']:
@@ -123,18 +124,16 @@ def load_seg_model(model_folder, gpu_id=0):
   return model
 
 
-def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu, save_prob_index):
+def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
   """ Segment the volume of interest
   :param model:           the loaded segmentation model.
   :param iso_image:       the image volume that has the same spacing with the model's resampling spacing.
   :param start_voxel:     the start voxel of the volume of interest (inclusive).
   :param end_voxel:       the end voxel of the volume of interest (exclusive).
   :param use_gpu:         whether to use gpu or not, bool type.
-  :param save_prob_index: the index of class to save its mean probability map
   :return:
-    mask:                 the segmentation mask
-    mean_prob:            the mean probability map of a given class
-    std_map:              the standard deviation map of the mean probability map of the given class
+    mean_prob_maps:        the mean probability maps of all classes
+    std_maps:              the standard deviation maps of all classes
   """
   assert isinstance(iso_image, sitk.Image)
 
@@ -153,37 +152,34 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu, save_pro
     probs = torch.unsqueeze(probs, 0)
     for i in range(bayesian_iteration - 1):
       probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
-    mean_probs, stddev_probs = torch.mean(probs, 0), torch.std(probs, 0)
+    mean_probs, stddev_maps = torch.mean(probs, 0), torch.std(probs, 0)
 
-  # return segmentation mask
-  _, mask = mean_probs.max(1)
-  mask = convert_tensor_to_image(mask[0].data, dtype=np.int8)
-  mask.CopyInformation(roi_image)
+  num_classes = model['out_channels']
+  assert num_classes == mean_probs.shape[1]
 
   # return the average probability map
-  mean_prob = None
-  if save_prob_index >= 0:
-    mean_prob = convert_tensor_to_image(mean_probs[0][save_prob_index].data, dtype=np.float)
+  mean_prob_maps, std_maps = [], []
+  for idx in range(num_classes):
+    mean_prob = convert_tensor_to_image(mean_probs[0][idx].data, dtype=np.float)
     mean_prob.CopyInformation(roi_image)
+    mean_prob_maps.append(mean_prob)
 
-  # return the standard deviation of probability map
-  std_map = None
-  if save_prob_index >= 0:
-    std_map = convert_tensor_to_image(stddev_probs[0][save_prob_index].data, dtype=np.float)
+    std_map = convert_tensor_to_image(stddev_maps[0][idx].data, dtype=np.float)
     std_map.CopyInformation(roi_image)
+    std_maps.append(std_map)
 
-  return mask, mean_prob, std_map
+  return mean_prob_maps, std_maps
 
 
-def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob_index):
+def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob, save_uncertainty):
     """ volumetric image segmentation engine
-    :param input_path:          a path of text file, a single image file
-                                or a root dir with all image files
-    :param model_folder:        path of trained model
-    :param output_folder:       path of out folder
-    :param gpu_id:              which gpu to use, by default, 0
-    :param save_image           whether to save original image
-    :param save_prob_index:     The probability map of which class will be saved. Save no prob if setting to -1.
+    :param input_path:          The path of text file, a single image file or a root dir with all image files
+    :param model_folder:        The path of trained model
+    :param output_folder:       The path of out folder
+    :param gpu_id:              Which gpu to use, by default, 0
+    :param save_image:          Whether to save original image
+    :param save_prob:           Whether to save all probability maps
+    :param save_uncertainty:    Whether to save all uncertainty maps
     :return: None
     """
 
@@ -221,19 +217,21 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       image = sitk.ReadImage(file_path, sitk.sitkFloat32)
       read_image_time = time.time() - begin
 
-      # set iso mask and prob
       iso_image = resample_spacing(image, model['spacing'], model['interpolation'])
-      iso_mask = sitk.Image(iso_image.GetSize(), sitk.sitkInt8)
-      iso_mask.CopyInformation(iso_image)
 
-      if save_prob_index >= 0:
+      num_classes = model['out_channels']
+      iso_mean_probs, iso_std_maps = [], []
+      for idx in range(num_classes):
         iso_mean_prob = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
         iso_mean_prob.CopyInformation(iso_image)
+        iso_mean_probs.append(iso_mean_prob)
 
         iso_std_map = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
         iso_std_map.CopyInformation(iso_image)
+        iso_std_maps.append(iso_std_map)
 
       partition_type = model['infer_cfg'].general.partition_type
+      partition_stride = model['infer_cfg'].general.partition_stride
       if partition_type == 'DISABLE':
         start_voxels = [[0, 0, 0]]
         end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
@@ -241,33 +239,47 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       elif partition_type == 'SIZE':
         partition_size = model['infer_cfg'].general.partition_size
         max_stride = model['max_stride']
-        start_voxels, end_voxels = image_partition_by_fixed_size(iso_image, partition_size, max_stride)
+        start_voxels, end_voxels = \
+          image_partition_by_fixed_size(iso_image, partition_size, partition_stride, max_stride)
 
       else:
         raise ValueError('Unsupported partition type!')
 
       begin = time.time()
+      iso_partition_overlap_count = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
+      iso_partition_overlap_count.CopyInformation(iso_image)
       for idx in range(len(start_voxels)):
         start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
 
-        voi_mask, voi_mean_prob, voi_std_map = \
-          segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0, save_prob_index)
-        iso_mask = copy_image(voi_mask, start_voxel, end_voxel, iso_mask)
+        voi_mean_probs, voi_std_maps = segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0)
+        for idy in range(num_classes):
+          iso_mean_probs[idy] = copy_image(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
+          iso_std_maps[idy] = copy_image(voi_std_maps[idy], start_voxel, end_voxel, iso_std_maps[idy])
 
-        if save_prob_index >= 0:
-          iso_mean_prob = copy_image(voi_mean_prob, start_voxel, end_voxel, iso_mean_prob)
-          iso_std_map = copy_image(voi_std_map, start_voxel, end_voxel, iso_std_map)
-
+        iso_partition_overlap_count = add_image_value(iso_partition_overlap_count, start_voxel, end_voxel, 1.0)
         print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
+
+      iso_partition_overlap_count = sitk.Cast(1.0 / iso_partition_overlap_count, sitk.sitkFloat32)
+      for idx in range(num_classes):
+        iso_mean_probs[idx] = iso_mean_probs[idx] * iso_partition_overlap_count
+        iso_std_maps[idx] = iso_std_maps[idx][:] * iso_partition_overlap_count[:]
+
+      # resample to the original spacing
+      mean_probs, std_maps = [], []
+      for idx in range(num_classes):
+        mean_probs.append(resample(iso_mean_probs[idx], image, 'LINEAR'))
+        std_maps.append(resample(iso_std_maps[idx], image, 'LINEAR'))
+
+      # get segmentation mask from the mean_probability maps
+      mean_probs_tensor = convert_image_to_tensor(mean_probs)
+      _, mask = mean_probs_tensor.max(0)
+      mask = convert_tensor_to_image(mask, dtype=np.int8)
       test_time = time.time() - begin
 
+      begin = time.time()
       case_name = file_name_list[i]
       if not os.path.isdir(os.path.join(output_folder, case_name)):
         os.makedirs(os.path.join(output_folder, case_name))
-
-      begin = time.time()
-      # resample mask to the original spacing
-      mask = resample(iso_mask, image, interp_method='NN')
 
       # pick the largest component
       # TO BE DONE
@@ -280,14 +292,15 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       if save_image:
         sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
 
-      if save_prob_index >= 0:
-        mean_prob = resample(iso_mean_prob, image, interp_method='LINEAR')
-        mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(save_prob_index))
-        sitk.WriteImage(mean_prob, mean_prob_save_path, True)
+      if save_prob:
+        for idx in range(num_classes):
+          mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(idx))
+          sitk.WriteImage(mean_probs[idx], mean_prob_save_path, True)
 
-        std_map = resample(iso_std_map, image, interp_method='LINEAR')
-        std_map_save_path = os.path.join(output_folder, case_name, 'std_prob_{}.mha'.format(save_prob_index))
-        sitk.WriteImage(std_map, std_map_save_path, True)
+      if save_uncertainty:
+        for idx in range(num_classes):
+          std_map_save_path = os.path.join(output_folder, case_name, 'std_map_{}.mha'.format(idx))
+          sitk.WriteImage(std_maps[idx], std_map_save_path, True)
       save_time = time.time() - begin
 
       total_test_time = load_model_time + read_image_time + test_time + post_processing_time + save_time
@@ -301,32 +314,26 @@ def main():
                        '1. Single image\n' \
                        '2. A text file containing paths of all testing images\n'\
                        '3. A folder containing all testing images\n'
-    parser = argparse.ArgumentParser(description=long_description)
 
-    parser.add_argument('-i', '--input',
-                        default='/home/qinliu/debug/org.mha',
-                        help='input folder/file for intensity images')
-    parser.add_argument('-m', '--model',
-                        default='/home/qinliu/debug/model_0129_2020',
-                        help='model root folder')
-    parser.add_argument('-o', '--output',
-                        default='/home/qinliu/debug/results',
-                        help='output folder for segmentation')
-    parser.add_argument('-n', '--seg_name',
-                        default='result.mha',
-                        help='the name of the segmentation result to be saved')
-    parser.add_argument('-g', '--gpu_id', type=int,
-                        default=-1,
-                        help='the gpu id to run model, set to -1 if using cpu only.')
-    parser.add_argument('--save_image',
-                        help='whether to save original image', action="store_true")
-    parser.add_argument('--save_prob_index', type=int,
-                        default=1,
-                        help='whether to save single prob map')
+    default_input = '/home/qinliu/debug/ROI.nii.gz'
+    default_model = '/home/qinliu/debug/model_0129_2020'
+    default_output = '/home/qinliu/debug/results'
+    default_seg_name = 'result.mha'
+    default_gpu_id = -1
+
+    parser = argparse.ArgumentParser(description=long_description)
+    parser.add_argument('-i', '--input', default=default_input, help='input folder/file for intensity images')
+    parser.add_argument('-m', '--model', default=default_model, help='model root folder')
+    parser.add_argument('-o', '--output', default=default_output, help='output folder for segmentation')
+    parser.add_argument('-n', '--seg_name', default=default_seg_name, help='the name of the segmentation result to be saved')
+    parser.add_argument('-g', '--gpu_id', type=int, default=default_gpu_id, help='the gpu id to run model, set to -1 if using cpu only.')
+    parser.add_argument('--save_image', help='whether to save original image', action="store_true")
+    parser.add_argument('--save_prob', help='whether to save all prob maps', action="store_true")
+    parser.add_argument('--save_uncertainty', help='whether to save single prob map', action="store_true")
     args = parser.parse_args()
 
     segmentation(args.input, args.model, args.output, args.seg_name, args.gpu_id, args.save_image,
-                 args.save_prob_index)
+                 args.save_prob, args.save_uncertainty)
 
 
 if __name__ == '__main__':
