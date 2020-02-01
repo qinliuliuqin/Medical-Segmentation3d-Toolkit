@@ -30,5 +30,11 @@ __C.general.partition_type = 'SIZE'
 # it is recommended to set this value as the same with the physical cropping size in the training phase
 __C.general.partition_size = [64, 64, 64]
 
+# the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
+# between the partition windows. Otherwise, the value of the overlapped area will be averaged.
+# it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
+# different partition window.
+__C.general.partition_stride = [32, 32, 32]
+
 # number of iteration in bayesian segmentation, set it as 1 for non-bayesian segmentation model
 __C.general.bayesian_iteration = 1
