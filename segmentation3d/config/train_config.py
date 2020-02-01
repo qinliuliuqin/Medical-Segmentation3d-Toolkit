@@ -13,13 +13,13 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/home/qinliu/debug/train.txt'
+__C.general.imseg_list = '/home/qinliu/debug/train_debug.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/home/qinliu/debug/model_0122_2020_debug'
+__C.general.save_dir = '/home/qinliu/debug/model_0129_2020'
 
 # continue training from certain epoch, -1 to train from scratch
-__C.general.resume_epoch = -1
+__C.general.resume_epoch = 2000
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
 __C.general.num_gpus = 0
@@ -51,7 +51,7 @@ __C.dataset.crop_size = [32, 32, 32]
 __C.dataset.sampling_method = 'CENTER'
 
 # translation augmentation (unit: mm)
-__C.dataset.random_translation = [5, 5, 5]
+__C.dataset.random_translation = [0, 0, 0]
 
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
@@ -63,7 +63,7 @@ __C.dataset.interpolation = 'LINEAR'
 # 1) FixedNormalizer: use fixed mean and standard deviation to normalize intensity
 # 2) AdaptiveNormalizer: use minimum and maximum intensity of crop to normalize intensity
 #__C.dataset.crop_normalizers = [FixedNormalizer(mean=150, stddev=350, clip=True)]
-__C.dataset.crop_normalizers = [AdaptiveNormalizer()]
+__C.dataset.crop_normalizers = [AdaptiveNormalizer(clip=True)]
 
 ##################################
 # training loss
@@ -103,7 +103,7 @@ __C.net.dropout_turn_on = True
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 1001
+__C.train.epochs = 2001
 
 # the number of samples in a batch
 __C.train.batchsize = 1
@@ -118,7 +118,7 @@ __C.train.lr = 1e-4
 __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
-__C.train.save_epochs = 2
+__C.train.save_epochs = 100
 
 
 ###################################
