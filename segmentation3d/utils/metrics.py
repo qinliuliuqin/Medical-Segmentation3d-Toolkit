@@ -8,7 +8,8 @@ def cal_dsc(ground_truth, segmentation, label, threshold):
   :param ground_truth: the input ground truth.
   :param segmentation: the input segmentation result.
   :param label: the label for dsc calculation.
-  :param threshold: the segmentation threshold.
+  :param threshold: the segmentation threshold, only the number of voxels greater
+                    than the threshold will be regarded as valid segmentation.
   return:
     dsc: the dice similarity coefficient or dice ratio.
     seg_type: the segmentation type.
