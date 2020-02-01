@@ -178,7 +178,7 @@ def image_partition_by_fixed_size(image, partition_size, partition_stride, max_s
     for idx in range(0, num_partitions[0]):
         for idy in range(0, num_partitions[1]):
             for idz in range(0, num_partitions[2]):
-                start_voxel = [idx * box_size[0], idy * box_size[1], idz * box_size[2]]
+                start_voxel = [idx * partition_stride[0], idy * partition_stride[1], idz * partition_stride[2]]
                 end_voxel = [(idx + 1) * box_size[0], (idy + 1) * box_size[1], (idz + 1) * box_size[2]]
                 for dim in range(3):
                     if end_voxel[dim] > image_size[dim]:
