@@ -315,9 +315,9 @@ def main():
                        '2. A text file containing paths of all testing images\n'\
                        '3. A folder containing all testing images\n'
 
-    default_input = '/home/qinliu/debug/ROI.nii.gz'
-    default_model = '/home/qinliu/debug/model_0129_2020'
-    default_output = '/home/qinliu/debug/results'
+    default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
+    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0130_2020_debug'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0130_2020_debug/epoch_2000'
     default_seg_name = 'result.mha'
     default_gpu_id = -1
 
@@ -330,8 +330,8 @@ def main():
     parser.add_argument('--save_image', help='whether to save original image', action="store_true")
     parser.add_argument('--save_prob', help='whether to save all prob maps', action="store_true")
     parser.add_argument('--save_uncertainty', help='whether to save single prob map', action="store_true")
-    args = parser.parse_args()
 
+    args = parser.parse_args()
     segmentation(args.input, args.model, args.output, args.seg_name, args.gpu_id, args.save_image,
                  args.save_prob, args.save_uncertainty)
 
