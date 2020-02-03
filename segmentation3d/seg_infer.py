@@ -218,7 +218,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       image = sitk.ReadImage(file_path, sitk.sitkFloat32)
       read_image_time = time.time() - begin
 
-      iso_image = resample_spacing(image, model['spacing'], model['interpolation'])
+      iso_image = resample_spacing(image, model['spacing'], model['max_stride'], model['interpolation'])
 
       num_classes = model['out_channels']
       iso_mean_probs, iso_std_maps = [], []

@@ -318,11 +318,12 @@ def resample(image, reference, interp_method):
     return sitk.Resample(image, reference, identity_transform, interp_method)
 
 
-def resample_spacing(image, resampled_spacing, interp_method):
+def resample_spacing(image, resampled_spacing, max_stride, interp_method):
     """ Resample the spacing of image
 
     :param image: the input image.
     :param resampled_spacing: the spacing of the resampled output image.
+    :param max_stride: the output size should be the multiple
     :param interp_method: the interpolation method.
     :return the resampled image
     """
@@ -335,6 +336,9 @@ def resample_spacing(image, resampled_spacing, interp_method):
 
     out_spacing = [float(resampled_spacing[idx]) for idx in range(3)]
     out_size = [int(in_size[idx] * in_spacing[idx] / out_spacing[idx] + 0.5) for idx in range(3)]
+    for idx in range(3):
+        if out_size[idx] % max_stride:
+            out_size[idx] = max_stride * (out_size[idx] // max_stride + 1)
 
     if interp_method == 'LINEAR':
         interp_method = sitk.sitkLinear
