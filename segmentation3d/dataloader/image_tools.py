@@ -187,8 +187,10 @@ def image_partition_by_fixed_size(image, partition_size, partition_stride, max_s
                 start_voxel = [idx * stride_size[0], idy * stride_size[1], idz * stride_size[2]]
                 end_voxel = [start_voxel[0] + box_size[0], start_voxel[1] + box_size[1], start_voxel[2] + box_size[2]]
                 for dim in range(3):
-                    start_voxel[dim] = max(0, start_voxel[dim])
-                    end_voxel[dim] = min(end_voxel[dim], image_size[dim])
+                    if end_voxel[dim] > image_size[dim]:
+                        end_voxel[dim] = image_size[dim]
+                        start_voxel[dim] = max(0, end_voxel[dim] - box_size[dim])
+                        start_voxel[dim] += (end_voxel[dim] - start_voxel[dim]) % max_stride
                   
                 start_voxels.append(start_voxel)
                 end_voxels.append(end_voxel)
