@@ -142,6 +142,7 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
 def copy_image(source_image, target_start_voxel, target_end_voxel, target_image):
     """
     Copy from the source image to the target image in a given rectangle region.
+    The source image and the target image should have the same orientation.
     """
     assert isinstance(source_image, sitk.Image)
     assert isinstance(target_image, sitk.Image)
@@ -172,8 +173,11 @@ def image_partition_by_fixed_size(image, partition_size, partition_stride, max_s
     for idx in range(3):
         if box_size[idx] % max_stride:
             box_size[idx] = max_stride * (box_size[idx] // max_stride + 1)
+        box_size[idx] = min(image_size[idx], box_size[idx])
 
     stride_size = [int(partition_stride[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
+    for idx in range(3):
+        stride_size[idx] = min(image_size[idx], stride_size[idx])
 
     num_partitions = [int(np.ceil((image_size[idx] - box_size[idx]) / stride_size[idx] + 1)) for idx in range(3)]
     start_voxels, end_voxels = [], []
@@ -183,10 +187,9 @@ def image_partition_by_fixed_size(image, partition_size, partition_stride, max_s
                 start_voxel = [idx * stride_size[0], idy * stride_size[1], idz * stride_size[2]]
                 end_voxel = [start_voxel[0] + box_size[0], start_voxel[1] + box_size[1], start_voxel[2] + box_size[2]]
                 for dim in range(3):
-                    if end_voxel[dim] > image_size[dim]:
-                        end_voxel[dim] = image_size[dim]
-                        start_voxel[dim] = end_voxel[dim] - box_size[dim]
-
+                    start_voxel[dim] = max(0, start_voxel[dim])
+                    end_voxel[dim] = min(end_voxel[dim], image_size[dim])
+                  
                 start_voxels.append(start_voxel)
                 end_voxels.append(end_voxel)
 
