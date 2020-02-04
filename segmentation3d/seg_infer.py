@@ -12,7 +12,8 @@ from easydict import EasyDict as edict
 from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.dataloader.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
-  copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value
+  copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
+  remove_small_connected_component
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 
 
@@ -284,7 +285,14 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         os.makedirs(os.path.join(output_folder, case_name))
 
       # pick the largest component
-      # TO BE DONE
+      if model['infer_cfg'].general.pick_largest_cc:
+        mask = pick_largest_connected_component(mask, list(range(1, num_classes)))
+
+      # remove small connected component
+      if model['infer_cfg'].general.remove_small_cc > 0:
+        threshold = model['infer_cfg'].general.remove_small_cc
+        mask = remove_small_connected_component(mask, list(range(1, num_classes)), threshold)
+
       post_processing_time = time.time() - begin
 
       begin = time.time()

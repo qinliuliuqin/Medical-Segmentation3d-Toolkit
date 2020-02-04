@@ -352,11 +352,59 @@ def resample_spacing(image, resampled_spacing, max_stride, interp_method):
                          in_direction)
 
 
-def pick_largest_connected_component(mask):
+def pick_largest_connected_component(mask, labels):
     """ Pick the largest connected component.
+    :param mask: The multi label mask
+    :param labels: The labels which will be selected the largest connect component.
     """
+    assert isinstance(mask, sitk.Image)
+    assert isinstance(labels, list)
 
-    pass
+    filter = sitk.ConnectedComponentImageFilter()
+    filter.SetFullyConnected(True)
+
+    largest_cc_binaries = []
+    for label in labels:
+      mask_binary = (mask == label)
+      mask_binary_cc = filter.Execute(mask_binary)
+
+      mask_binary_cc = sitk.RelabelComponent(mask_binary_cc)
+      mask_binary_largest_cc = (mask_binary_cc == 1)
+      largest_cc_binaries.append(mask_binary_largest_cc)
+
+    largest_cc_multi = largest_cc_binaries[0]
+    for idx in range(1, len(labels)):
+      largest_cc_multi = sitk.Add(largest_cc_multi, labels[idx] * largest_cc_binaries[idx])
+
+    return sitk.Cast(largest_cc_multi, mask.GetPixelID())
+
+
+def remove_small_connected_component(mask, labels, threshold):
+    """ Pick the largest connected component.
+    :param mask: The multi label mask
+    :param labels: The labels which will be selected the largest connect component.
+    :param threshold: The threshold below which the voxel will be set as 0.
+    """
+    assert isinstance(mask, sitk.Image)
+    assert isinstance(labels, list)
+
+    filter = sitk.ConnectedComponentImageFilter()
+    filter.SetFullyConnected(True)
+
+    largest_cc_binaries = []
+    for label in labels:
+      mask_binary = (mask == label)
+      mask_binary_cc = filter.Execute(mask_binary)
+
+      mask_binary_cc = sitk.RelabelComponent(mask_binary_cc, threshold)
+      mask_binary_largest_cc = (mask_binary_cc > 0)
+      largest_cc_binaries.append(mask_binary_largest_cc)
+
+    largest_cc_multi = largest_cc_binaries[0]
+    for idx in range(1, len(labels)):
+      largest_cc_multi = sitk.Add(largest_cc_multi, labels[idx] * largest_cc_binaries[idx])
+
+    return sitk.Cast(largest_cc_multi, mask.GetPixelID())
 
 
 def add_image_value(image, start_voxel, end_voxel, value):

@@ -1,5 +1,6 @@
 import SimpleITK as sitk
-from segmentation3d.dataloader.image_tools import copy_image, crop_image, resample_spacing
+from segmentation3d.dataloader.image_tools import copy_image, crop_image, resample_spacing, \
+  pick_largest_connected_component
 
 
 def test_copy_image():
@@ -65,13 +66,13 @@ def crop_patch():
 
 def test_pick_largest_connected_component():
 
-    seg =sitk.ReadImage('/home/qinliu/debug/result.mha')
+    seg =sitk.ReadImage('/home/qinliu/debug/ROI_mask.nii.gz')
+    threshold = 100000
+    labels = [1, 2]
 
-    seg_cc = sitk.ConnectedComponent(seg)
-
-    seg_cc = sitk.ConnectedThreshold()
-
-    sitk.WriteImage(seg_cc, '/home/qinliu/debug/result_cc.mha')
+    seg_cc_path = '/home/qinliu/debug/seg_cc.mha'
+    seg_cc = pick_largest_connected_component(seg, labels, threshold)
+    sitk.WriteImage(seg_cc, seg_cc_path, True)
 
 
 if __name__ == '__main__':
