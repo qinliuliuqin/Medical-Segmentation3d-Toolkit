@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from segmentation3d.network.module.weight_init import kaiming_weight_init, gaussian_weight_init
@@ -23,14 +24,14 @@ class SegmentationNet(nn.Module):
     def __init__(self, in_channels, out_channels, dropout_turn_on=False):
         super(SegmentationNet, self).__init__()
         self.in_block = InputBlock(in_channels, 16)
-        self.down_32 = DownBlock(16, 1)
-        self.down_64 = DownBlock(32, 2)
-        self.down_128 = DownBlock(64, 3)
-        self.down_256 = DownBlock(128, 3)
-        self.up_256 = UpBlock(256, 256, 3)
-        self.up_128 = UpBlock(256, 128, 3)
-        self.up_64 = UpBlock(128, 64, 2)
-        self.up_32 = UpBlock(64, 32, 1)
+        self.down_32 = DownBlock(16, 1, compression=True)
+        self.down_64 = DownBlock(32, 2, compression=True)
+        self.down_128 = DownBlock(64, 3, compression=True)
+        self.down_256 = DownBlock(128, 3, compression=True)
+        self.up_256 = UpBlock(256, 256, 3, compression=True)
+        self.up_128 = UpBlock(256, 128, 3, compression=True)
+        self.up_64 = UpBlock(128, 64, 2, compression=True)
+        self.up_32 = UpBlock(64, 32, 1, compression=True)
         self.out_block = OutputBlock(32, out_channels)
         self.dropout_turn_on = dropout_turn_on
         if self.dropout_turn_on:
@@ -38,6 +39,7 @@ class SegmentationNet(nn.Module):
 
 
     def forward(self, input):
+        assert isinstance(input, torch.Tensor)
 
         if self.dropout_turn_on:
             self.dropout.train()

@@ -18,3 +18,17 @@ class ConvBnRelu3(nn.Module):
         if self.do_act:
             out = self.act(out)
         return out
+
+
+class BottConvBnRelu3(nn.Module):
+    """Bottle neck structure"""
+
+    def __init__(self, in_channels, out_channels, ksize, stride, padding, ratio, do_act=True, bias=True):
+        super(BottConvBnRelu3, self).__init__()
+        self.conv1 = ConvBnRelu3(in_channels, in_channels//ratio, ksize, stride, padding, do_act=True, bias=bias)
+        self.conv2 = ConvBnRelu3(in_channels//ratio, in_channels//ratio, ksize, stride, padding, do_act=True, bias=bias)
+        self.conv3 = ConvBnRelu3(in_channels//ratio, out_channels, ksize, stride, padding, do_act=do_act, bias=bias)
+
+    def forward(self, input):
+        out = self.conv3(self.conv2(self.conv1(input)))
+        return out
