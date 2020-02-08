@@ -121,6 +121,8 @@ def crop_image(image, cropping_center, cropping_size, cropping_spacing, interp_m
 
     cropping_physical_size = [cropping_size[idx] * cropping_spacing[idx] for idx in range(3)]
     cropping_start_point_world = [cropping_center[idx] - cropping_physical_size[idx] / 2.0 for idx in range(3)]
+    for idx in range(3):
+        cropping_start_point_world[idx] += cropping_spacing[idx] / 2.0
 
     cropping_origin = cropping_start_point_world
     cropping_direction = image.GetDirection()
