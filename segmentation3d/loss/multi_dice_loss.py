@@ -27,19 +27,17 @@ class MultiDiceLoss(nn.Module):
         :param target: ground truth
         :return: weighted dice loss and a list for all class dice loss, expect background
         """
-        dice_losses = []
         weight_dice_loss = 0
         all_slice = torch.split(input_tensor, [1] * self.num_class, dim=1)
 
         binary_dice_loss = BinaryDiceLoss()
         for i in range(self.num_class):
             # prepare for calculate label i dice loss
-            slice_i = torch.cat([1 - all_slice[i], all_slice[i]], dim=1)
+            slice_i = torch.cat([1.0 / self.num_class + torch.zeros_like(all_slice[i]), all_slice[i]], dim=1)
             target_i = (target == i).float()
 
             dice_i_loss = binary_dice_loss(slice_i, target_i)
             # save all classes dice loss and calculate weighted dice
-            dice_losses.append(dice_i_loss)
             weight_dice_loss += dice_i_loss * self.weights[i]
 
         return weight_dice_loss
