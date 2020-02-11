@@ -1,5 +1,4 @@
 import torch
-from torch.autograd import Variable
 from torch import nn
 
 
@@ -44,13 +43,8 @@ class FocalLoss(nn.Module):
         # 2. [batch, 1, dim_y, dim_x] or [batch, dim_y, dim_x]
         # 3. [batch, 1, dim_z, dim_y, dim_x], or [batch, dim_z, dim_y, dim_x]
         target = target.long().view(-1)
-
         mask = self.one_hot_codes[target.data]
-        mask = Variable(mask, requires_grad=False)
-
         alpha = self.alpha[target.data]
-        alpha = Variable(alpha, requires_grad=False)
-
         probs = (input * mask).sum(1).view(-1, 1) + 1e-10
         log_probs = probs.log()
 
