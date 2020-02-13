@@ -16,7 +16,7 @@ Medical image 3D segmentation engine.
    line2: the absolute path of the first training image, eg. /your-image-folder/image.mha
    line3: the absolute path of the label of the first image, eg. /your-label-folder/label.mha   
 
-   eg.
+   An example train.txt can be:
    ```
    2
    /home/qinliu/train_data/image_1.mha
