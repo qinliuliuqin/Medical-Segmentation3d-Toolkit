@@ -10,12 +10,7 @@ Medical image 3D segmentation engine.
    git clone https://github.com/qinliuliuqin/Medical-Segmentation3d-Toolkit.git
    cd Medical-Segmentation3d-Toolkit/segmentation3d
    ```
-2. Configure the training settings in `config/train_config.py`.
-   The format of the training txt file should be:
-   line1: number of traning images, eg. 2
-   line2: the absolute path of the first training image, eg. /your-image-folder/image.mha
-   line3: the absolute path of the label of the first image, eg. /your-label-folder/label.mha   
-
+2. Configure the training settings in `config/train_config.py` and then create a training file titled `train.txt`.
    An example train.txt can be:
    ```
    2
@@ -24,6 +19,8 @@ Medical image 3D segmentation engine.
    /home/qinliu/train_data/image_2.mha
    /home/qinliu/train_data/label_2.mha   
    ```
+   The number `2` in the first line denotes the number of traning images.
+   The absolute path of training images and their corresponding labels should be listed in the following lines.
    
 3. Train the model:
  
