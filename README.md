@@ -23,7 +23,6 @@ Medical image 3D segmentation engine.
    /home/qinliu/train_data/label_1.mha
    /home/qinliu/train_data/image_2.mha
    /home/qinliu/train_data/label_2.mha   
-   ...
    ```
    
 3. Train the model:
