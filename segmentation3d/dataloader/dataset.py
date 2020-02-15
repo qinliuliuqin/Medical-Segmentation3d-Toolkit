@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 
 from segmentation3d.utils.file_io import readlines
 from segmentation3d.dataloader.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
-    convert_image_to_tensor, get_image_frame
+    convert_image_to_tensor, get_image_frame, resample_spacing
 
 
 def read_train_txt(imlist_file):
@@ -34,7 +34,7 @@ class SegmentationDataset(Dataset):
     """ training data set for volumetric segmentation """
 
     def __init__(self, imlist_file, num_classes, spacing, crop_size, sampling_method,
-                 random_translation, interpolation, crop_normalizers):
+                 random_translation, interpolation, crop_normalizers, max_stride=16):
         """ constructor
         :param imlist_file: image-segmentation list file
         :param num_classes: the number of classes
@@ -70,6 +70,8 @@ class SegmentationDataset(Dataset):
 
         assert isinstance(crop_normalizers, list), 'crop normalizers must be a list'
         self.crop_normalizers = crop_normalizers
+
+        self.max_stride = max_stride
 
     def __len__(self):
         """ get the number of images in this data set """
@@ -168,11 +170,17 @@ class SegmentationDataset(Dataset):
 
         seg = crop_image(seg, center, self.crop_size, self.spacing, 'NN')
 
+        # generate the coarse seg
+        coarse_ratio = 2.0
+        coarse_spacing = [float(seg.GetSpacing()[idx] * coarse_ratio) for idx in range(3)]
+        seg_coarse = resample_spacing(seg, coarse_spacing, self.max_stride, 'NN')
+
         # image frame
         frame = get_image_frame(seg)
 
         # convert to tensors
         im = convert_image_to_tensor(images)
         seg = convert_image_to_tensor(seg)
+        seg_coarse = convert_image_to_tensor(seg_coarse)
 
-        return im, seg, frame, case_name
+        return im, seg, seg_coarse, frame, case_name

@@ -97,17 +97,17 @@ def train(config_file):
     for i in range(len(data_loader)):
         begin_t = time.time()
 
-        crops, masks, frames, filenames = data_iter.next()
+        crops, masks, masks_coarse, frames, filenames = data_iter.next()
 
         if cfg.general.num_gpus > 0:
-            crops, masks = crops.cuda(), masks.cuda()
+            crops, masks, masks_coarse = crops.cuda(), masks.cuda(), masks_coarse.cuda()
 
         # clear previous gradients
         opt.zero_grad()
 
         # network forward and backward
-        outputs = net(crops)
-        train_loss = loss_func(outputs, masks)
+        outputs, features = net(crops)
+        train_loss = loss_func(outputs, masks_coarse)
         train_loss.backward()
 
         # update weights
