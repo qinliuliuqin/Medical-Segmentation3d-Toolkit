@@ -38,7 +38,7 @@ __C.dataset = {}
 __C.dataset.num_classes = 3
 
 # the resolution on which segmentation is performed
-__C.dataset.spacing = [4.0, 4.0, 4.0]
+__C.dataset.spacing = [2.0, 2.0, 2.0]
 
 # the sampling crop size, e.g., determine the context information
 __C.dataset.crop_size = [32, 32, 32]
@@ -90,7 +90,7 @@ __C.loss.focal_gamma = 2
 __C.net = {}
 
 # the network name
-__C.net.name = 'vbnet'
+__C.net.name = 'vbnet_rend'
 
 # enable uncertainty by trun on drop out layers in the segmentation net
 __C.net.dropout_turn_on = False
