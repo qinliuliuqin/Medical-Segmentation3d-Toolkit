@@ -16,7 +16,7 @@ def voxel_sample(input, voxel_coords, **kwargs):
     [0, 1] x [0, 1] x [0, 1] cubic.
     Args:
         input (Tensor): A tensor of shape (N, C, D, H, W) that contains features map on a D x H x W grid.
-        voxel_coords (Tensor): A tensor of shape (N, P, 2) or (N, D_grid, H_grid, W_grid, 2) that contains
+        voxel_coords (Tensor): A tensor of shape (N, P, 2) or (N, D_out, H_out, W_out, 3) that contains
         [0, 1] x [0, 1] x [0, 1] normalized voxel coordinates.
     Returns:
         output (Tensor): A tensor of shape (N, C, P) or (N, C, Hgrid, Wgrid) that contains
