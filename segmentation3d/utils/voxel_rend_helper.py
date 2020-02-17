@@ -17,12 +17,12 @@ def voxel_sample(input, voxel_coords, mode='bilinear', padding_mode='zeros'):
     [0, 1] x [0, 1] x [0, 1] cubic.
     Args:
         input (Tensor): A tensor of shape (N, C, D, H, W) that contains features map on a D x H x W grid.
-        voxel_coords (Tensor): A tensor of shape (N, P, 2) or (N, D_out, H_out, W_out, 3) that contains
+        voxel_coords (Tensor): A tensor of shape (N, P, 3) or (N, D_out, H_out, W_out, 3) that contains
         [0, 1] x [0, 1] x [0, 1] normalized voxel coordinates.
     Returns:
-        output (Tensor): A tensor of shape (N, C, P, 1, 1) or (N, C, D_out, H_out, W_out) that contains
-            features for points in `voxel_coords`. The features are obtained via trilinear
-            interpolation from `input` the same way as :function:`torch.nn.functional.grid_sample`.
+        output (Tensor): A tensor of shape (N, C, P) or (N, C, D_out * H_out * W_out) that contains features for
+            points in `voxel_coords`. The features are obtained via bilinear interpolation from `input` the same way
+            as :function:`torch.nn.functional.grid_sample`.
     """
     add_dim = False
     if voxel_coords.dim() == 3:
@@ -32,6 +32,9 @@ def voxel_sample(input, voxel_coords, mode='bilinear', padding_mode='zeros'):
     output = F.grid_sample(input, 2.0 * voxel_coords - 1.0, mode=mode, padding_mode=padding_mode)
     if add_dim:
       output = output.squeeze(3).squeeze(3)
+
+    if output.dim() == 5:
+      output = output.view(output.shape[0], output.shape[1], -1)
 
     return output
 
@@ -66,7 +69,7 @@ def get_uncertain_voxel_coords_with_randomness(
       oversample_ratio (int): Oversampling parameter.
       importance_sample_ratio (float): Ratio of points that are sampled via importance sampling.
   Returns:
-      voxel_coords (Tensor): A tensor of shape (N, P, 2) that contains the coordinates of P sampled points.
+      voxel_coords (Tensor): A tensor of shape (N, P, 3) that contains the coordinates of P sampled points.
   """
   assert oversample_ratio >= 1
   assert importance_sample_ratio <= 1 and importance_sample_ratio >= 0
@@ -90,3 +93,23 @@ def get_uncertain_voxel_coords_with_randomness(
       dim=1,
     )
   return voxel_coords
+
+
+def voxel_sample_features(features_list, voxel_coords):
+  """
+  Get features from feature maps in `features_list` that correspond to the specified voxel coordinates.
+    Args:
+      features_list (list[Tensor]): A list of feature map tensors to get features from. Each feature map in the list
+          is a tensor of shape (R, :, D, H, W). Different feature maps have different channels.
+      voxel_coords (Tensor): A tensor of shape (R, P, 3) that contains [0, 1] x [0, 1] x [0, 1] normalized coordinates
+          of the P sampled points.
+  Returns:
+      point_features (Tensor): A tensor of shape (R, C, P) that contains features sampled from all features maps
+          in feature_list for P sampled points for all R boxes in `boxes`.
+  """
+
+  voxel_features = []
+  for idx_feature, feature_map in enumerate(features_list):
+    voxel_features.append(voxel_sample(feature_map, voxel_coords))
+
+  return torch.cat(voxel_features, dim=1)
