@@ -97,17 +97,36 @@ def train(config_file):
     for i in range(len(data_loader)):
         begin_t = time.time()
 
-        crops, masks, masks_coarse, frames, filenames = data_iter.next()
+        crops, masks_fine, masks_coarse, frames, filenames = data_iter.next()
 
         if cfg.general.num_gpus > 0:
-            crops, masks, masks_coarse = crops.cuda(), masks.cuda(), masks_coarse.cuda()
+            crops, masks_fine, masks_coarse = crops.cuda(), masks_fine.cuda(), masks_coarse.cuda()
 
         # clear previous gradients
         opt.zero_grad()
 
         # network forward and backward
-        outputs, features = net(crops)
-        train_loss = loss_func(outputs, masks_coarse)
+        preds_coarse, features = net(crops)
+
+        # up-sample the coarse predictions
+        up_sampler = nn.Upsample(scale_factor=2, mode='trilinear', align_corners=False)
+        preds_fine = up_sampler(preds_coarse)
+        train_loss1 = loss_func(preds_fine, masks_fine)
+
+        # sample points according to the fine predictions
+        # to be done
+
+        # compute features for each selected samples
+        # to be done
+
+        # train a fully connected layer for classification
+        # to be done
+
+        # compute loss for the selected points
+        # to be done
+        train_loss2 = 0
+
+        train_loss = train_loss1 + train_loss2
         train_loss.backward()
 
         # update weights
@@ -116,7 +135,7 @@ def train(config_file):
         # save training crops for visualization
         if cfg.debug.save_inputs:
             batch_size = crops.size(0)
-            save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
+            save_intermediate_results(list(range(batch_size)), crops, masks_fine, preds_fine, frames, filenames,
                                       os.path.join(cfg.general.save_dir, 'batch_{}'.format(i)))
 
         epoch_idx = batch_idx * cfg.train.batchsize // len(dataset)

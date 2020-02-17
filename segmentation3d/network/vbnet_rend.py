@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
 
 from segmentation3d.network.module.weight_init import kaiming_weight_init, gaussian_weight_init
 from segmentation3d.network.module.vnet_inblock import InputBlock
