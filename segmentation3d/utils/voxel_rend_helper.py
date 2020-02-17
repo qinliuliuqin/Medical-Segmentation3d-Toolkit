@@ -9,7 +9,7 @@ Shape shorthand in this module:
 """
 
 
-def voxel_sample(input, voxel_coords, **kwargs):
+def voxel_sample(input, voxel_coords, mode='trilinear', padding_mode='zeros', align_corners=False):
     """
     A wrapper around :function:`torch.nn.functional.grid_sample` to support 3D point_coords tensors.
     Unlike :function:`torch.nn.functional.grid_sample` it assumes `voxel_coords` to lie inside
@@ -19,8 +19,8 @@ def voxel_sample(input, voxel_coords, **kwargs):
         voxel_coords (Tensor): A tensor of shape (N, P, 2) or (N, D_out, H_out, W_out, 3) that contains
         [0, 1] x [0, 1] x [0, 1] normalized voxel coordinates.
     Returns:
-        output (Tensor): A tensor of shape (N, C, P) or (N, C, Hgrid, Wgrid) that contains
-            features for points in `point_coords`. The features are obtained via bilinear
+        output (Tensor): A tensor of shape (N, C, P, 1, 1) or (N, C, D_out, H_out, W_out) that contains
+            features for points in `voxel_coords`. The features are obtained via trilinear
             interplation from `input` the same way as :function:`torch.nn.functional.grid_sample`.
     """
     add_dim = False
@@ -28,7 +28,7 @@ def voxel_sample(input, voxel_coords, **kwargs):
       add_dim = True
       voxel_coords = voxel_coords.unsqueeze(2).unsqueeze(2)
 
-    output = F.grid_sample(input, 2.0 * voxel_coords - 1.0, **kwargs)
+    output = F.grid_sample(input, 2.0 * voxel_coords - 1.0, mode, padding_mode, align_corners)
     if add_dim:
       output = output.squeeze(2).squeeze(2)
 
