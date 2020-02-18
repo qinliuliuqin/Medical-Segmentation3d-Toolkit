@@ -57,12 +57,12 @@ def calculate_uncertainty(preds):
 
 
 def get_uncertain_voxel_coords_with_randomness(
-    preds_coarse, uncertainty_func, num_voxels, oversample_ratio, importance_sample_ratio):
+    preds, uncertainty_func, num_voxels, oversample_ratio, importance_sample_ratio):
   """
   Sample points in [0, 1] x [0, 1] x [0, 1] coordinate space based on their uncertainty. The uncertainties
       are calculated for each point using 'uncertainty_func' function that takes point's prediction as input.
   Args:
-      preds_coarse (Tensor): A tensor of shape (N, C, D, H, W).
+      preds (Tensor): A tensor of shape (N, C, D, H, W).
       uncertainty_func: A function that takes a Tensor of shape (N, C, P) or (N, 2, P) that contains predictions for P
           points and returns their uncertainties as a Tensor of shape (N, 1, P).
       num_voxels (int): The number of voxels P to sample.
@@ -74,21 +74,21 @@ def get_uncertain_voxel_coords_with_randomness(
   assert oversample_ratio >= 1
   assert importance_sample_ratio <= 1 and importance_sample_ratio >= 0
 
-  num_batches = preds_coarse.shape[0]
+  num_batches = preds.shape[0]
   num_sampled = int(num_voxels * oversample_ratio)
-  voxel_coords = torch.rand(num_batches, num_sampled, 3, device=preds_coarse.device)
-  voxel_preds = voxel_sample(preds_coarse, voxel_coords)
+  voxel_coords = torch.rand(num_batches, num_sampled, 3, device=preds.device)
+  voxel_preds = voxel_sample(preds, voxel_coords)
   voxel_uncertainties = uncertainty_func(voxel_preds)
   num_uncertain_voxels = int(importance_sample_ratio * num_voxels)
   num_random_voxels = num_voxels - num_uncertain_voxels
   idx = torch.topk(voxel_uncertainties[:, 0, :], k=num_uncertain_voxels, dim=1)[1]
-  shift = num_sampled * torch.arange(num_batches, dtype=torch.long, device=preds_coarse.device)
+  shift = num_sampled * torch.arange(num_batches, dtype=torch.long, device=preds.device)
   idx += shift[:, None]
   voxel_coords = voxel_coords.view(-1, 3)[idx.view(-1), :].view(num_batches, num_uncertain_voxels, 3)
   if num_random_voxels > 0:
     voxel_coords = torch.cat([
         voxel_coords,
-        torch.rand(num_batches, num_random_voxels, 3, device=preds_coarse.device),
+        torch.rand(num_batches, num_random_voxels, 3, device=preds.device),
       ],
       dim=1,
     )
