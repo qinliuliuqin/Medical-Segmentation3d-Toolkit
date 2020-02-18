@@ -65,6 +65,13 @@ def train(config_file):
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
 
+    voxel_head_fine_channels = net.num_multi_layer_features()
+    voxel_head_coarse_channels = cfg.dataset.num_classes
+    voxel_net = net_module.VoxelHead(
+        voxel_head_fine_channels, voxel_head_coarse_channels, cfg.dataset.num_classes, cfg.voxel_head.num_fc
+    )
+    net_module.parameters_kaiming_init(voxel_net)
+
     if cfg.general.num_gpus > 0:
         net = nn.parallel.DataParallel(net, device_ids=list(range(cfg.general.num_gpus)))
         net = net.cuda()
@@ -142,21 +149,11 @@ def train(config_file):
         assert voxel_coarse_features.shape[1] == cfg.dataset.num_classes
 
         # train a fully connected layer for classification
-        voxel_head_fine_channels = voxel_fine_features.shape[1]
-        voxel_head_coarse_channels = voxel_coarse_features.shape[1]
-        voxel_head_out_channels = cfg.dataset.num_classes
-        voxel_head_num_fc = cfg.voxel_head.num_fc
-        voxel_net = net_module.VoxelHead(
-            voxel_head_fine_channels, voxel_head_coarse_channels, voxel_head_out_channels, voxel_head_num_fc
-        )
         voxel_preds = voxel_net(voxel_fine_features, voxel_coarse_features)
         voxel_head_loss = voxel_head_loss_func(voxel_preds, voxel_labels)
 
         train_loss = (1 - cfg.voxel_head.loss_weight) * mask_head_loss + cfg.voxel_head.loss_weight * voxel_head_loss
         train_loss.backward()
-
-        # debug info
-        print(mask_head_loss.item(), voxel_head_loss.item())
 
         # update weights
         opt.step()
@@ -173,8 +170,10 @@ def train(config_file):
         sample_duration = batch_duration * 1.0 / cfg.train.batchsize
 
         # print training loss per batch
-        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
-        msg = msg.format(epoch_idx, batch_idx, train_loss.item(), sample_duration)
+        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, mask_loss: {:.4f}, voxel_loss: {:.4f}, time: {:.4f} s/vol'
+        msg = msg.format(
+            epoch_idx, batch_idx, train_loss.item(), mask_head_loss.item(), voxel_head_loss.item(), sample_duration
+        )
         logger.info(msg)
 
         # save checkpoint
