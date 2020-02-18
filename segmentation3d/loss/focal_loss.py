@@ -29,12 +29,16 @@ class FocalLoss(nn.Module):
         # 1. [sample, class_num]
         # 2. [batch, class_num, dim_y, dim_x]
         # 3. [batch, class_num, dim_z, dim_y, dim_x]
-        assert input.dim() == 2 or input.dim() == 4 or input.dim() == 5
+        # 4. [batch, class_num, num_voxels]
+        assert input.dim() == 2 or input.dim() == 4 or input.dim() == 5 or input.dim() == 3
         if input.dim() == 4:
             input = input.permute(0, 2, 3, 1).contiguous()
             input = input.view(input.numel() // self.class_num, self.class_num)
         elif input.dim() == 5:
             input = input.permute(0, 2, 3, 4, 1).contiguous()
+            input = input.view(input.numel() // self.class_num, self.class_num)
+        elif input.dim() == 3:
+            input = input.permute(0, 2, 1).contiguous()
             input = input.view(input.numel() // self.class_num, self.class_num)
 
         # Assume that the target should has one of the following shapes which
