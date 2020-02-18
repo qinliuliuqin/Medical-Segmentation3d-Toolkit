@@ -17,6 +17,8 @@ from segmentation3d.loss.focal_loss import FocalLoss
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
 from segmentation3d.utils.file_io import load_config, setup_logger
 from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint
+from segmentation3d.utils.voxel_rend_helper import get_uncertain_voxel_coords_with_randomness, calculate_uncertainty, \
+    voxel_sample_features, voxel_sample
 
 
 def train(config_file):
@@ -78,12 +80,22 @@ def train(config_file):
     else:
         last_save_epoch, batch_start = 0, 0
 
+    # loss function for mask head
     if cfg.loss.name == 'Focal':
-        # reuse focal loss if exists
-        loss_func = FocalLoss(class_num=cfg.dataset.num_classes, alpha=cfg.loss.obj_weight, gamma=cfg.loss.focal_gamma,
-                              use_gpu=cfg.general.num_gpus > 0)
+        mask_head_loss_func = FocalLoss(class_num=cfg.dataset.num_classes, alpha=cfg.loss.obj_weight,
+                                        gamma=cfg.loss.focal_gamma, use_gpu=cfg.general.num_gpus > 0)
     elif cfg.loss.name == 'Dice':
-        loss_func = MultiDiceLoss(weights=cfg.loss.obj_weight, num_class=cfg.dataset.num_classes,
+        mask_head_loss_func = MultiDiceLoss(weights=cfg.loss.obj_weight, num_class=cfg.dataset.num_classes,
+                                  use_gpu=cfg.general.num_gpus > 0)
+    else:
+        raise ValueError('Unknown loss function')
+
+    # loss function for voxel head
+    if cfg.voxel_head.loss_name == 'Focal':
+        voxel_head_loss_func = FocalLoss(class_num=cfg.dataset.num_classes, alpha=cfg.voxel_head.loss_obj_weight,
+                                         gamma=cfg.voxel_head.loss_focal_gamma, use_gpu=cfg.general.num_gpus > 0)
+    elif cfg.loss.name == 'Dice':
+        voxel_head_loss_func = MultiDiceLoss(weights=cfg.voxel_head.loss_obj_weight, num_class=cfg.dataset.num_classes,
                                   use_gpu=cfg.general.num_gpus > 0)
     else:
         raise ValueError('Unknown loss function')
@@ -106,28 +118,45 @@ def train(config_file):
         opt.zero_grad()
 
         # network forward and backward
-        preds_coarse, features = net(crops)
+        mask_preds_coarse, mask_fine_features = net(crops)
 
         # up-sample the coarse predictions
         up_sampler = nn.Upsample(scale_factor=2, mode='trilinear', align_corners=False)
-        preds_fine = up_sampler(preds_coarse)
-        train_loss1 = loss_func(preds_fine, masks_fine)
+        mask_preds_fine = up_sampler(mask_preds_coarse)
+        mask_head_loss = mask_head_loss_func(mask_preds_fine, masks_fine)
 
         # sample points according to the fine predictions
-        # to be done
+        num_voxels, oversample_ratio, importance_sample_ratio = \
+            cfg.voxel_head.num_voxels, cfg.voxel_head.oversample_ratio, cfg.voxel_head.importance_sample_ratio
+        voxel_coords = get_uncertain_voxel_coords_with_randomness(
+            mask_preds_fine, calculate_uncertainty, num_voxels, oversample_ratio, importance_sample_ratio
+        )
 
-        # compute features for each selected samples
-        # to be done
+        # compute features for each selected sample. There are two types of features, namely the fine-grained features
+        # and the coarse features. the fine-grained features is extracted from the multi-layer feature maps, while the
+        # coarse features are extracted from the fine predictions which are up-sampled from the coarse predictions.
+        voxel_fine_features = voxel_sample_features(mask_fine_features, voxel_coords)
+        voxel_coarse_features = voxel_sample(mask_preds_fine, voxel_coords)
+        voxel_labels = voxel_sample(masks_fine, voxel_coords, mode='nearest')
+        assert voxel_fine_features.dim() == voxel_coarse_features.dim() == voxel_labels.dim()
+        assert voxel_coarse_features.shape[1] == cfg.dataset.num_classes
 
         # train a fully connected layer for classification
-        # to be done
+        voxel_head_fine_channels = voxel_fine_features.shape[1]
+        voxel_head_coarse_channels = voxel_coarse_features.shape[1]
+        voxel_head_out_channels = cfg.dataset.num_classes
+        voxel_head_num_fc = cfg.voxel_head.num_fc
+        voxel_net = net_module.VoxelHead(
+            voxel_head_fine_channels, voxel_head_coarse_channels, voxel_head_out_channels, voxel_head_num_fc
+        )
+        voxel_preds = voxel_net(voxel_fine_features, voxel_coarse_features)
+        voxel_head_loss = voxel_head_loss_func(voxel_preds, voxel_labels)
 
-        # compute loss for the selected points
-        # to be done
-        train_loss2 = 0
-
-        train_loss = train_loss1 + train_loss2
+        train_loss = (1 - cfg.voxel_head.loss_weight) * mask_head_loss + cfg.voxel_head.loss_weight * voxel_head_loss
         train_loss.backward()
+
+        # debug info
+        print(mask_head_loss.item(), voxel_head_loss.item())
 
         # update weights
         opt.step()
@@ -135,7 +164,7 @@ def train(config_file):
         # save training crops for visualization
         if cfg.debug.save_inputs:
             batch_size = crops.size(0)
-            save_intermediate_results(list(range(batch_size)), crops, masks_fine, preds_fine, frames, filenames,
+            save_intermediate_results(list(range(batch_size)), crops, masks_fine, mask_preds_fine, frames, filenames,
                                       os.path.join(cfg.general.save_dir, 'batch_{}'.format(i)))
 
         epoch_idx = batch_idx * cfg.train.batchsize // len(dataset)

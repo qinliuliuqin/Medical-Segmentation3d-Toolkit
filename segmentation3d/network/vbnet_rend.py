@@ -76,3 +76,26 @@ class SegmentationNet(nn.Module):
 
     def max_stride(self):
         return 16
+
+
+class VoxelHead(nn.Module):
+    """ Voxel classification network: A voxel head multi-layer perceptron which we model with conv1d layers with
+        kernel 1. The head takes both multi-layer fine-grained and coarse prediction features as its input.
+    """
+    def __init__(self, in_fine_channels, in_coarse_channels, out_channels, num_fc):
+        super(VoxelHead, self).__init__()
+
+        fc_in_channels = in_fine_channels + in_coarse_channels
+        self.fc_layers = []
+        for k in range(num_fc):
+            fc = nn.Conv1d(fc_in_channels, in_fine_channels, kernel_size=1, stride=1, padding=0, bias=True)
+            self.fc_layers.append(fc)
+
+        self.predictor = nn.Conv1d(fc_in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+
+    def forward(self, fine_features, coarse_features):
+        x = torch.cat([fine_features, coarse_features], dim=1)
+        for layer in self.fc_layers:
+            x = torch.relu(layer(x))
+            x = torch.cat((x, coarse_features), dim=1)
+        return self.predictor(x)

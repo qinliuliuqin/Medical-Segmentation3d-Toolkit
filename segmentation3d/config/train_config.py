@@ -82,6 +82,36 @@ __C.loss.obj_weight = [1/3, 1/3, 1/3]
 # the gamma parameter in focal loss
 __C.loss.focal_gamma = 2
 
+##################################
+# voxel head parameters
+##################################
+
+__C.voxel_head = {}
+
+# the number voxels for voxel head network
+__C.voxel_head.num_voxels = 4096
+
+# oversample ratio
+__C.voxel_head.oversample_ratio = 3
+
+# importance sample ratio
+__C.voxel_head.importance_sample_ratio = 0.75
+
+# number of fully-connected layers
+__C.voxel_head.num_fc = 3
+
+# voxel head loss name
+__C.voxel_head.loss_name = 'Dice'
+
+# the gamma parameter in focal loss
+# only valid for Focal loss
+__C.voxel_head.loss_focal_gamma = 2
+
+# the weight for each class including background class weights will be normalized
+__C.voxel_head.loss_obj_weight = [1/3, 1/3, 1/3]
+
+# loss weight
+__C.voxel_head.loss_weight = 0.5
 
 ##################################
 # net
@@ -105,10 +135,10 @@ __C.train = {}
 __C.train.epochs = 5001
 
 # the number of samples in a batch
-__C.train.batchsize = 1
+__C.train.batchsize = 2
 
 # the number of threads for IO
-__C.train.num_threads = 1
+__C.train.num_threads = 2
 
 # the learning rate
 __C.train.lr = 1e-4
