@@ -16,7 +16,7 @@ __C.general = {}
 __C.general.imseg_list = '/home/qinliu/debug/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/home/qinliu/debug/models/model_0214_2020_2'
+__C.general.save_dir = '/home/qinliu/debug/models/model_0218_2020/experimentB/model3'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
@@ -73,7 +73,7 @@ __C.loss = {}
 # the name of loss function to use
 # Focal: Focal loss, supports binary-class and multi-class segmentation
 # Dice: Dice Similarity Loss which supports binary and multi-class segmentation
-__C.loss.name = 'Dice'
+__C.loss.name = 'Focal'
 
 # the weight for each class including background class
 # weights will be normalized
@@ -89,7 +89,7 @@ __C.loss.focal_gamma = 2
 __C.voxel_head = {}
 
 # the number voxels for voxel head network
-__C.voxel_head.num_voxels = 30000
+__C.voxel_head.num_voxels = 5120
 
 # oversample ratio
 __C.voxel_head.oversample_ratio = 3
@@ -98,10 +98,10 @@ __C.voxel_head.oversample_ratio = 3
 __C.voxel_head.importance_sample_ratio = 0
 
 # number of fully-connected layers
-__C.voxel_head.num_fc = 2
+__C.voxel_head.num_fc = 3
 
 # voxel head loss name
-__C.voxel_head.loss_name = 'Dice'
+__C.voxel_head.loss_name = 'Focal'
 
 # the gamma parameter in focal loss
 # only valid for Focal loss

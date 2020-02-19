@@ -104,7 +104,7 @@ def voxel_sample_features(features_list, voxel_coords):
       voxel_coords (Tensor): A tensor of shape (R, P, 3) that contains [0, 1] x [0, 1] x [0, 1] normalized coordinates
           of the P sampled points.
   Returns:
-      point_features (Tensor): A tensor of shape (R, C, P) that contains features sampled from all features maps
+      voxel_features (Tensor): A tensor of shape (R, C, P) that contains features sampled from all features maps
           in feature_list for P sampled points for all R boxes in `boxes`.
   """
 

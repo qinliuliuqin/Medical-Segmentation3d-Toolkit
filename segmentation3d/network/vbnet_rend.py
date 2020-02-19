@@ -72,16 +72,14 @@ class SegmentationNet(nn.Module):
 
         out = self.out_block(r2_out64)
 
-        # multi_layer_features = (l1_out16, r2_out64, r3_out128, r4_out256)
-        multi_layer_features = (l1_out16, r2_out64)
-
+        multi_layer_features = (l1_out16, r2_out64, r3_out128, r4_out256)
         return out, multi_layer_features
 
     def max_stride(self):
         return 16
 
     def num_multi_layer_features(self):
-        return 80
+        return 464
 
 
 class VoxelHead(nn.Module):
