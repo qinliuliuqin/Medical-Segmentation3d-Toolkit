@@ -40,8 +40,46 @@ def test_save_binary_dicom_series():
   write_binary_dicom_series(seg, dicom_save_folder, in_label=2, out_label=100, tags=tags)
 
 
+def test_merge_mask():
+  """
+  Merge two masks.
+  mask1: a mask which includes midface, mandible and soft tissue
+  mask2: a mask which includes the upper teeth and the lower teeth. The upper teeth is a part of midface, and the lower teeth
+         is a part of mandible.
+  merged_mask: the mask merged by mask1 and mask2.
+  """
+  # read the first mask
+  mask_path_1 = '/home/qinliu/debug/seg1_dicom'
+  mask1 = read_dicom_series(mask_path_1)
+
+  # read the second mask
+  mask_path_2 = '/home/qinliu/debug/seg2_dicom'
+  mask2 = read_dicom_series(mask_path_2)
+
+  # the two masks should have the same size
+  size_mask_1, size_mask_2 = mask1.GetSize(), mask2.GetSize()
+  assert size_mask_1[0] == size_mask_2[0]
+  assert size_mask_1[1] == size_mask_2[1]
+  assert size_mask_1[2] == size_mask_2[2]
+
+  # merge two masks
+  mask1_npy = sitk.GetArrayFromImage(mask1)
+  mask2_npy = sitk.GetArrayFromImage(mask2)
+
+  upper_teeth_label, lower_teeth_label = 1, 2
+  mask1_npy[mask2_npy == upper_teeth_label] = upper_teeth_label
+  mask1_npy[mask2_npy == lower_teeth_label] = lower_teeth_label
+
+  merged_mask = sitk.GetImageFromArray(mask1_npy)
+  merged_mask.CopyInformation(mask1)
+  merged_mask_path = '/home/qinliu/debug/merged_seg.mha'
+  sitk.WriteImage(merged_mask, merged_mask_path, True)
+
+
 if __name__ == '__main__':
 
   test_save_dicom_series()
 
   test_save_binary_dicom_series()
+
+  test_merge_mask()
