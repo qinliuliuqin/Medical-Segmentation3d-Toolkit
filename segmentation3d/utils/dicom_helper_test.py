@@ -41,6 +41,13 @@ def test_save_binary_dicom_series():
 
 
 def test_merge_mask():
+  """
+  Merge two masks.
+  mask1: a mask which includes midface, mandible and soft tissue
+  mask2: a mask which includes the upper teeth and the lower teeth. The upper teeth is a part of midface, and the lower teeth
+         is a part of mandible.
+  merged_mask: the mask merged by mask1 and mask2.
+  """
   # read the first mask
   mask_path_1 = '/home/qinliu/debug/seg1_dicom'
   mask1 = read_dicom_series(mask_path_1)
