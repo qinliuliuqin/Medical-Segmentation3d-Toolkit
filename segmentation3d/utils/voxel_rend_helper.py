@@ -95,6 +95,33 @@ def get_uncertain_voxel_coords_with_randomness(
   return voxel_coords
 
 
+def get_uncertain_voxel_coords_on_grid(uncertainty_map, num_voxels):
+  """
+  Find `num_voxels` most uncertain points from `uncertainty_map` grid.
+  Args:
+      uncertainty_map (Tensor): A tensor of shape (N, 1, D, H, W) that contains uncertainty
+          values for a set of points on a regular H x W grid.
+      num_voxels (int): The number of voxels P to select.
+  Returns:
+      voxel_indices (Tensor): A tensor of shape (N, P) that contains indices from
+          [0, H x W) of the most uncertain points.
+      voxel_coords (Tensor): A tensor of shape (N, P, 3) that contains [0, 1] x [0, 1] x [0, 1] normalized
+          coordinates of the most uncertain voxels from the D x H x W grid.
+  """
+  R, _, D, H, W = uncertainty_map.shape
+  d_step = 1.0 / float(D)
+  h_step = 1.0 / float(H)
+  w_step = 1.0 / float(W)
+
+  num_voxels = min(D * H * W, num_voxels)
+  voxel_indices = torch.topk(uncertainty_map.view(R, D * H * W), k=num_voxels, dim=1)[1]
+  voxel_coords = torch.zeros(R, num_voxels, 3, dtype=torch.float, device=uncertainty_map.device)
+  voxel_coords[:, :, 0] = w_step / 2.0 + (voxel_indices % W).to(torch.float) * w_step
+  voxel_coords[:, :, 1] = h_step / 2.0 + (voxel_indices // W).to(torch.float) * h_step
+  voxel_coords[:, :, 2] = d_step / 2.0 + (voxel_indices // (W * H)).to(torch.float) * d_step
+  return voxel_indices, voxel_coords
+
+
 def voxel_sample_features(features_list, voxel_coords):
   """
   Get features from feature maps in `features_list` that correspond to the specified voxel coordinates.

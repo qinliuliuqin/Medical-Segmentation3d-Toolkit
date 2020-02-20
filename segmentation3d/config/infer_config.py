@@ -36,6 +36,9 @@ __C.general.partition_size = [51.2, 51.2, 51.2]
 # different partition window.
 __C.general.partition_stride = [25.6, 25.6, 25.6]
 
+# enable voxel net
+__C.general.turn_on_voxel_net = True
+
 # number of voxels for voxel net
 __C.general.num_voxels_for_voxel_net = 10240
 

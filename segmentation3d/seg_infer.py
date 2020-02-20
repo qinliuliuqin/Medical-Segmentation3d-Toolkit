@@ -15,7 +15,7 @@ from segmentation3d.dataloader.image_tools import resample, convert_image_to_ten
   copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
   remove_small_connected_component
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
-from segmentation3d.utils.voxel_rend_helper import get_uncertain_voxel_coords_with_randomness, calculate_uncertainty, \
+from segmentation3d.utils.voxel_rend_helper import get_uncertain_voxel_coords_on_grid, calculate_uncertainty, \
   voxel_sample_features, voxel_sample
 
 
@@ -181,19 +181,24 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, num_voxels, use_g
     mask_fine_probs = up_sampler(mask_coarse_probs)
 
     # sample points according to the fine predictions
-    voxel_net = model['voxel_net']
-    oversample_ratio, importance_sample_ratio = 1, 1.0
-    voxel_coords = get_uncertain_voxel_coords_with_randomness(
-      mask_fine_probs, calculate_uncertainty, num_voxels, oversample_ratio, importance_sample_ratio
-    )
-    voxel_fine_features = voxel_sample_features(mask_fine_features, voxel_coords)
-    voxel_coarse_features = voxel_sample(mask_fine_probs, voxel_coords)
-    assert voxel_fine_features.dim() == voxel_coarse_features.dim()
+    if num_voxels > 0:
+      uncertainty_map = calculate_uncertainty(mask_fine_probs)
+      voxel_indices, voxel_coords = get_uncertain_voxel_coords_on_grid(uncertainty_map, num_voxels)
 
-    voxel_probs = voxel_net(voxel_fine_features, voxel_coarse_features)
+      voxel_fine_features = voxel_sample_features(mask_fine_features, voxel_coords)
+      voxel_coarse_features = voxel_sample(mask_fine_probs, voxel_coords)
+      assert voxel_fine_features.dim() == voxel_coarse_features.dim()
 
-    # update the coarse prediction
-    # TO BE DONE
+      voxel_net = model['voxel_net']
+      voxel_probs = voxel_net(voxel_fine_features, voxel_coarse_features)
+
+      R, C, D, H, W = mask_fine_probs.shape
+      voxel_indices = voxel_indices.unsqueeze(1).expand(-1, C, -1)
+      mask_fine_probs = (
+        mask_fine_probs.reshape(R, C, D * H * W)
+          .scatter_(2, voxel_indices, voxel_probs)
+          .view(R, C, D, H, W)
+      )
 
     mask_fine_probs = torch.unsqueeze(mask_fine_probs, 0)
     for i in range(bayesian_iteration - 1):
@@ -293,7 +298,8 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       begin = time.time()
       iso_partition_overlap_count = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
       iso_partition_overlap_count.CopyInformation(iso_image)
-      num_voxels = model['infer_cfg'].general.num_voxels_for_voxel_net
+      num_voxels = \
+        model['infer_cfg'].general.num_voxels_for_voxel_net if model['infer_cfg'].general.turn_on_voxel_net else 0
       for idx in range(len(start_voxels)):
         start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
 
