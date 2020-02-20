@@ -75,6 +75,8 @@ def train(config_file):
     if cfg.general.num_gpus > 0:
         net = nn.parallel.DataParallel(net, device_ids=list(range(cfg.general.num_gpus)))
         net = net.cuda()
+        voxel_net = nn.parallel.DataParallel(voxel_net, device_ids=list(range(cfg.general.num_gpus)))
+        voxel_net = voxel_net.cuda()
 
     assert np.all(np.array(cfg.dataset.crop_size) % max_stride == 0), 'crop size not divisible by max stride'
 
