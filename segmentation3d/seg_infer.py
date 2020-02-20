@@ -150,12 +150,13 @@ def load_seg_model(model_folder, gpu_id=0):
   return model
 
 
-def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
+def segmentation_voi(model, iso_image, start_voxel, end_voxel, num_voxels, use_gpu):
   """ Segment the volume of interest
   :param model:           the loaded segmentation model.
   :param iso_image:       the image volume that has the same spacing with the model's resampling spacing.
   :param start_voxel:     the start voxel of the volume of interest (inclusive).
   :param end_voxel:       the end voxel of the volume of interest (exclusive).
+  :param num_voxels:      the number of voxels for voxel net.
   :param use_gpu:         whether to use gpu or not, bool type.
   :return:
     mean_prob_maps:        the mean probability maps of all classes
@@ -181,7 +182,7 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
 
     # sample points according to the fine predictions
     voxel_net = model['voxel_net']
-    num_voxels, oversample_ratio, importance_sample_ratio = 10240, 1, 1.0
+    oversample_ratio, importance_sample_ratio = 1, 1.0
     voxel_coords = get_uncertain_voxel_coords_with_randomness(
       mask_fine_probs, calculate_uncertainty, num_voxels, oversample_ratio, importance_sample_ratio
     )
@@ -292,10 +293,13 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
       begin = time.time()
       iso_partition_overlap_count = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
       iso_partition_overlap_count.CopyInformation(iso_image)
+      num_voxels = model['infer_cfg'].general.num_voxels_for_voxel_net
       for idx in range(len(start_voxels)):
         start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
 
-        voi_mean_probs, voi_std_maps = segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0)
+        voi_mean_probs, voi_std_maps = segmentation_voi(
+          model, iso_image, start_voxel, end_voxel, num_voxels, gpu_id > 0
+        )
         for idy in range(num_classes):
           iso_mean_probs[idy] = copy_image(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
           iso_std_maps[idy] = copy_image(voi_std_maps[idy], start_voxel, end_voxel, iso_std_maps[idy])

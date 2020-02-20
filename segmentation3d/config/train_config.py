@@ -147,7 +147,7 @@ __C.train.lr = 1e-4
 __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
-__C.train.save_epochs = 5
+__C.train.save_epochs = 100
 
 
 ###################################
