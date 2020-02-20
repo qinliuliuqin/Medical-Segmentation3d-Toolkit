@@ -89,13 +89,33 @@ class VoxelHead(nn.Module):
     def __init__(self, in_fine_channels, in_coarse_channels, out_channels, num_fc):
         super(VoxelHead, self).__init__()
 
-        fc_in_channels = in_fine_channels + in_coarse_channels
+        self.in_coarse_channels = in_coarse_channels
+        self.in_fine_channels = in_fine_channels
+        self.in_channels = self.in_fine_channels + self.in_coarse_channels
+        self.out_channels = out_channels
+        self.num_fc = num_fc
+
         self.fc_layers = []
         for k in range(num_fc):
-            fc = nn.Conv1d(fc_in_channels, in_fine_channels, kernel_size=1, stride=1, padding=0, bias=True)
+            fc = nn.Conv1d(self.in_channels, in_fine_channels, kernel_size=1, stride=1, padding=0, bias=True)
             self.fc_layers.append(fc)
 
-        self.predictor = nn.Conv1d(fc_in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+        self.predictor = nn.Conv1d(self.in_channels, out_channels, kernel_size=1, stride=1, padding=0)
+
+    def in_coarse_channels(self):
+        return self.in_coarse_channels
+
+    def in_fine_channels(self):
+        return self.in_fine_channels
+
+    def in_channels(self):
+        return self.in_channels
+
+    def out_channels(self):
+        return self.out_channels
+
+    def num_fc(self):
+        return self.num_fc
 
     def forward(self, fine_features, coarse_features):
         x = torch.cat([fine_features, coarse_features], dim=1)

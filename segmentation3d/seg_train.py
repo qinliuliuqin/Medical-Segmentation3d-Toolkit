@@ -179,7 +179,9 @@ def train(config_file):
         # save checkpoint
         if epoch_idx != 0 and (epoch_idx % cfg.train.save_epochs == 0):
             if last_save_epoch != epoch_idx:
-                save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride, dataset.num_modality())
+                save_checkpoint(
+                    net, voxel_net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride, dataset.num_modality()
+                )
                 last_save_epoch = epoch_idx
 
         writer.add_scalar('Train/Loss', train_loss.item(), batch_idx)

@@ -15,6 +15,8 @@ from segmentation3d.dataloader.image_tools import resample, convert_image_to_ten
   copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
   remove_small_connected_component
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
+from segmentation3d.utils.voxel_rend_helper import get_uncertain_voxel_coords_with_randomness, calculate_uncertainty, \
+  voxel_sample_features, voxel_sample
 
 
 def read_test_txt(txt_file):
@@ -83,6 +85,7 @@ def load_seg_model(model_folder, gpu_id=0):
 
   # load model state
   chk_file = os.path.join(latest_checkpoint_dir, 'params.pth')
+  voxel_net_chk_file = os.path.join(latest_checkpoint_dir, 'voxel_head_params.pth')
 
   if gpu_id >= 0:
     os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
@@ -96,19 +99,40 @@ def load_seg_model(model_folder, gpu_id=0):
     net.eval()
     net = net.cuda()
 
+    # load voxel head network module
+    voxel_net_state = torch.load(voxel_net_chk_file)
+    voxel_net = net_module.VoxelHead(
+      voxel_net_state['in_fine_channels'], voxel_net_state['in_coarse_channels'], voxel_net_state['out_channels']
+    )
+    voxel_net = nn.parallel.DataParallel(voxel_net)
+    voxel_net.load_state_dict(voxel_net_state['state_dict'])
+    voxel_net.eval()
+    voxel_net = voxel_net.cuda()
+
     del os.environ['CUDA_VISIBLE_DEVICES']
 
   else:
     state = torch.load(chk_file, map_location='cpu')
     net_module = importlib.import_module('segmentation3d.network.' + state['net'])
     net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
-    net = nn.parallel.DataParallel(net)
+    # net = nn.parallel.DataParallel(net)
     net.load_state_dict(state['state_dict'])
     net.eval()
+
+    voxel_net_state = torch.load(voxel_net_chk_file, map_location='cpu')
+    voxel_net = net_module.VoxelHead(
+      voxel_net_state['in_fine_channels'], voxel_net_state['in_coarse_channels'], voxel_net_state['out_channels'],
+      voxel_net_state['num_fc']
+    )
+    # voxel_net = nn.parallel.DataParallel(voxel_net)
+    voxel_net.load_state_dict(voxel_net_state['state_dict'])
+    voxel_net.eval()
 
   model.net = net
   model.spacing, model.max_stride, model.interpolation = state['spacing'], state['max_stride'], state['interpolation']
   model.in_channels, model.out_channels = state['in_channels'], state['out_channels']
+
+  model.voxel_net = voxel_net
 
   model.crop_normalizers = []
   for crop_normalizer in state['crop_normalizers']:
@@ -150,11 +174,30 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
 
   bayesian_iteration = model['infer_cfg'].general.bayesian_iteration
   with torch.no_grad():
-    probs = model['net'](roi_image_tensor)
-    probs = torch.unsqueeze(probs, 0)
+    mask_coarse_probs, mask_fine_features = model['net'](roi_image_tensor)
+    # up-sample the coarse predictions
+    up_sampler = nn.Upsample(scale_factor=2, mode='trilinear', align_corners=False)
+    mask_fine_probs = up_sampler(mask_coarse_probs)
+
+    # sample points according to the fine predictions
+    voxel_net = model['voxel_net']
+    num_voxels, oversample_ratio, importance_sample_ratio = 10240, 1, 1.0
+    voxel_coords = get_uncertain_voxel_coords_with_randomness(
+      mask_fine_probs, calculate_uncertainty, num_voxels, oversample_ratio, importance_sample_ratio
+    )
+    voxel_fine_features = voxel_sample_features(mask_fine_features, voxel_coords)
+    voxel_coarse_features = voxel_sample(mask_fine_probs, voxel_coords)
+    assert voxel_fine_features.dim() == voxel_coarse_features.dim()
+
+    voxel_probs = voxel_net(voxel_fine_features, voxel_coarse_features)
+
+    # update the coarse prediction
+    # TO BE DONE
+
+    mask_fine_probs = torch.unsqueeze(mask_fine_probs, 0)
     for i in range(bayesian_iteration - 1):
-      probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
-    mean_probs, stddev_maps = torch.mean(probs, 0), torch.std(probs, 0)
+      mask_fine_probs = torch.cat((mask_fine_probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
+    mean_probs, stddev_maps = torch.mean(mask_fine_probs, 0), torch.std(mask_fine_probs, 0)
 
   num_classes = model['out_channels']
   assert num_classes == mean_probs.shape[1]
@@ -184,7 +227,6 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     :param save_uncertainty:    Whether to save all uncertainty maps
     :return: None
     """
-
     # load model
     begin = time.time()
     model = load_seg_model(model_folder, gpu_id)
@@ -325,9 +367,9 @@ def main():
                        '2. A text file containing paths of all testing images\n'\
                        '3. A folder containing all testing images\n'
 
-    default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
-    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0201_2020'
-    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0201_2020'
+    default_input = '/home/qinliu/debug/test.txt'
+    default_model = '/home/qinliu/debug/models/model_0218_2020/experimentB/model3'
+    default_output = '/home/qinliu/debug/results/model_0218_2020'
     default_seg_name = 'result.mha'
     default_gpu_id = -1
 

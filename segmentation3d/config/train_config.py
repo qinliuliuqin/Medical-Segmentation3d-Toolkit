@@ -135,10 +135,10 @@ __C.train = {}
 __C.train.epochs = 5001
 
 # the number of samples in a batch
-__C.train.batchsize = 2
+__C.train.batchsize = 1
 
 # the number of threads for IO
-__C.train.num_threads = 2
+__C.train.num_threads = 1
 
 # the learning rate
 __C.train.lr = 1e-4
@@ -147,7 +147,7 @@ __C.train.lr = 1e-4
 __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
-__C.train.save_epochs = 100
+__C.train.save_epochs = 5
 
 
 ###################################
