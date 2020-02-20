@@ -95,11 +95,12 @@ class VoxelHead(nn.Module):
         self.out_channels = out_channels
         self.num_fc = num_fc
 
-        self.fc_layers = []
+        fc_layers = []
         for k in range(num_fc):
             fc = nn.Conv1d(self.in_channels, in_fine_channels, kernel_size=1, stride=1, padding=0, bias=True)
-            self.fc_layers.append(fc)
+            fc_layers.append(fc)
 
+        self.layers = nn.Sequential(*fc_layers)
         self.predictor = nn.Conv1d(self.in_channels, out_channels, kernel_size=1, stride=1, padding=0)
 
     def in_coarse_channels(self):
@@ -119,7 +120,7 @@ class VoxelHead(nn.Module):
 
     def forward(self, fine_features, coarse_features):
         x = torch.cat([fine_features, coarse_features], dim=1)
-        for layer in self.fc_layers:
+        for layer in self.layers:
             x = torch.relu(layer(x))
             x = torch.cat((x, coarse_features), dim=1)
         return torch.softmax(self.predictor(x), dim=1)
