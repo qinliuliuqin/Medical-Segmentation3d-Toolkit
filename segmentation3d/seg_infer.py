@@ -117,8 +117,8 @@ def load_seg_model(model_folder, gpu_id=0):
       model.crop_normalizers.append(FixedNormalizer(mean, stddev, clip))
 
     elif crop_normalizer['type'] == 1:
-      min_p, max_p, clip = crop_normalizer['min_p'], crop_normalizer['max_p'], crop_normalizer['clip']
-      model.crop_normalizers.append(AdaptiveNormalizer(min_p, max_p, clip))
+      clip_sigma = crop_normalizer['clip_sigma']
+      model.crop_normalizers.append(AdaptiveNormalizer(clip_sigma))
 
     else:
       raise ValueError('Unsupported normalization type.')
@@ -333,11 +333,11 @@ def main():
                        '2. A text file containing paths of all testing images\n'\
                        '3. A folder containing all testing images\n'
 
-    default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
-    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0224_2020/model1_master_branch_spacing0.8'
-    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0224_2020/model1_master_branch_spacing0.8'
-    default_seg_name = 'seg.mha'
-    default_gpu_id = 4
+    default_input = '/home/qinliu/projects/CT_Dental/datasets_debug/test.txt'
+    default_model = '/home/qinliu/projects/CT_Dental/models/model_0227_2020/model1_master_branch'
+    default_output = '/home/qinliu/projects/CT_Dental/results/model_0227_2020/model1_master_branch_debug'
+    default_seg_name = 'result.mha'
+    default_gpu_id = 0
 
     parser = argparse.ArgumentParser(description=long_description)
     parser.add_argument('-i', '--input', default=default_input, help='input folder/file for intensity images')

@@ -13,10 +13,10 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
+__C.general.imseg_list = '/home/qinliu/projects/CT_Dental/datasets_debug/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0224_2020/model1_master_branch_spacing0.8'
+__C.general.save_dir = '/home/qinliu/projects/CT_Dental/models/model_0227_2020/model1_master_branch'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
@@ -38,7 +38,7 @@ __C.dataset = {}
 __C.dataset.num_classes = 3
 
 # the resolution on which segmentation is performed
-__C.dataset.spacing = [0.8, 0.8, 0.8]
+__C.dataset.spacing = [0.4, 0.4, 0.4]
 
 # the sampling crop size, e.g., determine the context information
 __C.dataset.crop_size = [128, 128, 128]
@@ -62,7 +62,7 @@ __C.dataset.interpolation = 'LINEAR'
 # one normalizer corresponds to one input modality
 # 1) FixedNormalizer: use fixed mean and standard deviation to normalize intensity
 # 2) AdaptiveNormalizer: use minimum and maximum intensity of crop to normalize intensity
-__C.dataset.crop_normalizers = [AdaptiveNormalizer(clip=False)]
+__C.dataset.crop_normalizers = [AdaptiveNormalizer()]
 
 ##################################
 # training loss
@@ -105,10 +105,10 @@ __C.train = {}
 __C.train.epochs = 2001
 
 # the number of samples in a batch
-__C.train.batchsize = 3
+__C.train.batchsize = 1
 
 # the number of threads for IO
-__C.train.num_threads = 3
+__C.train.num_threads = 1
 
 # the learning rate
 __C.train.lr = 1e-4

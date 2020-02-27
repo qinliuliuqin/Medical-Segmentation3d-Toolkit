@@ -429,3 +429,12 @@ def add_image_value(image, start_voxel, end_voxel, value):
     added_image.CopyInformation(image)
 
     return added_image
+
+
+def get_mean_std_from_image(image):
+    """ Get mean and standard deviation from the input image.
+    """
+    assert isinstance(image, sitk.Image)
+
+    image_npy = sitk.GetArrayFromImage(image)
+    return np.mean(image_npy), np.std(image_npy)

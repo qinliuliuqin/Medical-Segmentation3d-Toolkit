@@ -1,7 +1,6 @@
-import numpy as np
 import SimpleITK as sitk
 
-from segmentation3d.dataloader.image_tools import normalize_image, percentiles
+from segmentation3d.dataloader.image_tools import normalize_image, get_mean_std_from_image
 
 
 class FixedNormalizer(object):
@@ -42,49 +41,25 @@ class FixedNormalizer(object):
 
 class AdaptiveNormalizer(object):
   """
-  use the minimum and maximum percentiles to normalize image intensities
+  Normalize image using z-score normalization.
   """
 
-  def __init__(self, min_p=1, max_p=99, clip=True, min_rand=0, max_rand=0):
+  def __init__(self, clip_sigma=3):
     """
-    constructor
-    :param min_p: percentile for computing minimum value
-    :param max_p: percentile for computing maximum value
-    :param clip: whether to clip the intensity between min and max
-    :param min_rand: the random perturbation (%) of minimum value (0-1)
-    :param max_rand: the random perturbation (%) of maximum value (0-1)
+    :param clip_sigma: clip the intensity within the 'clip_sigma' standard deviation. 68% voxels lies within 1
+      standard deviation, 95% within 2 standard deviation, and 99.7% within 3 standard deviation.
     """
-    assert 100 >= min_p >= 0, 'min_p must be between 0 and 100'
-    assert 100 >= max_p >= 0, 'max_p must be between 0 and 100'
-    assert max_p > min_p, 'max_p must be > min_p'
-    assert 1 >= min_rand >= 0, 'min_rand must be between 0 and 1'
-    assert 1 >= max_rand >= 0, 'max_rand must be between 0 and 1'
-    assert isinstance(clip, bool), 'clip must be a boolean'
-    self.min_p = min_p
-    self.max_p = max_p
-    self.clip = clip
-    self.min_rand = min_rand
-    self.max_rand = max_rand
+    assert clip_sigma > 0
+    self.clip_sigma = clip_sigma
 
   def normalize(self, single_image):
     """ Normalize a given image """
     assert isinstance(single_image, sitk.Image), 'image must be an image3d object'
-    normalize_min, normalize_max = percentiles(single_image, [self.min_p, self.max_p])
 
-    if self.min_rand > 0:
-      offset = np.abs(normalize_min) * self.min_rand
-      offset = np.random.uniform(-offset, offset)
-      normalize_min += offset
+    normalize_mean, normalize_stddev = get_mean_std_from_image(single_image)
+    normalize_stddev = max(normalize_stddev, 1e-6)
 
-    if self.max_rand > 0:
-      offset = np.abs(normalize_max) * self.max_rand
-      offset = np.random.uniform(-offset, offset)
-      normalize_max += offset
-
-    normalize_mean = (normalize_min + normalize_max) / 2.0
-    normalize_stddev = max(1e-6, np.abs(normalize_max - normalize_min) / 2.0)
-
-    return normalize_image(single_image, normalize_mean, normalize_stddev, clip=self.clip)
+    return normalize_image(single_image, normalize_mean, normalize_stddev, True, -self.clip_sigma, self.clip_sigma)
 
   def __call__(self, image):
     """ normalize image """
@@ -102,5 +77,5 @@ class AdaptiveNormalizer(object):
 
   def to_dict(self):
     """ convert parameters to dictionary """
-    obj = {'type': 1, 'min_p': self.min_p, 'max_p': self.max_p, 'clip': self.clip}
+    obj = {'type': 1, 'clip_sigma': self.clip_sigma}
     return obj
