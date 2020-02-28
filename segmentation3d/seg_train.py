@@ -62,7 +62,6 @@ def train(config_file):
     net = net_module.SegmentationNet(dataset.num_modality(), cfg.dataset.num_classes, cfg.net.dropout_turn_on)
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
-
     if cfg.general.num_gpus > 0:
         net = nn.parallel.DataParallel(net, device_ids=list(range(cfg.general.num_gpus)))
         net = net.cuda()
@@ -74,7 +73,7 @@ def train(config_file):
 
     # load checkpoint if resume epoch > 0
     if cfg.general.resume_epoch >= 0:
-        last_save_epoch, batch_start = load_checkpoint(cfg.general.resume_epoch, net, opt, cfg.general.save_dir, -1)
+        last_save_epoch, batch_start = load_checkpoint(cfg.general.resume_epoch, net, opt, cfg.general.save_dir)
     else:
         last_save_epoch, batch_start = 0, 0
 
@@ -142,7 +141,7 @@ def train(config_file):
 
 def main():
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '4'
 
     long_description = "Training engine for 3d medical image segmentation"
     parser = argparse.ArgumentParser(description=long_description)

@@ -1,7 +1,6 @@
 import os
 import glob
 import torch
-import torch.nn as nn
 import shutil
 
 
@@ -29,7 +28,7 @@ def get_checkpoint_folder(chk_root, epoch):
   return os.path.join(chk_root, 'chk_{}'.format(epoch))
 
 
-def load_checkpoint(epoch_idx, net, opt, save_dir, gpu_id=0):
+def load_checkpoint(epoch_idx, net, opt, save_dir):
     """ load network parameters from directory
 
     :param epoch_idx: the epoch idx of model to load
@@ -42,27 +41,15 @@ def load_checkpoint(epoch_idx, net, opt, save_dir, gpu_id=0):
     chk_file = os.path.join(save_dir, 'checkpoints', 'chk_{}'.format(epoch_idx), 'params.pth')
     assert os.path.isfile(chk_file), 'checkpoint file not found: {}'.format(chk_file)
 
-    if gpu_id >= 0:
-      os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
-
-    map_location = 'cpu' if gpu_id >= 0 else None
-
-    state = torch.load(chk_file, map_location=map_location)
-
-    if gpu_id >= 0:
-      net = nn.parallel.DataParallel(net)
-
+    state = torch.load(chk_file)
     net.load_state_dict(state['state_dict'])
 
     # load optimizer state
     opt_file = os.path.join(save_dir, 'checkpoints', 'chk_{}'.format(epoch_idx), 'optimizer.pth')
     assert os.path.isfile(opt_file), 'optimizer file not found: {}'.format(chk_file)
 
-    opt_state = torch.load(opt_file, map_location=map_location)
+    opt_state = torch.load(opt_file)
     opt.load_state_dict(opt_state)
-
-    if gpu_id >= 0:
-      del os.environ['CUDA_VISIBLE_DEVICES']
 
     return state['epoch'], state['batch']
 

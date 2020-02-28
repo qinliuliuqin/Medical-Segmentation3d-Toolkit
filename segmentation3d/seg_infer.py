@@ -1,11 +1,11 @@
 import argparse
 import glob
 import importlib
+import torch.nn as nn
 import os
 import SimpleITK as sitk
 import time
 import torch
-import torch.nn as nn
 import numpy as np
 from easydict import EasyDict as edict
 
@@ -74,11 +74,10 @@ def load_seg_model(model_folder, gpu_id=0):
   """
   assert os.path.isdir(model_folder), 'Model folder does not exist: {}'.format(model_folder)
 
-  model = edict()
-
   # load inference config file
   latest_checkpoint_dir = get_checkpoint_folder(os.path.join(model_folder, 'checkpoints'), -1)
   infer_cfg = load_config(os.path.join(latest_checkpoint_dir, 'infer_config.py'))
+  model = edict()
   model.infer_cfg = infer_cfg
 
   # load model state
@@ -86,23 +85,20 @@ def load_seg_model(model_folder, gpu_id=0):
 
   if gpu_id >= 0:
     os.environ['CUDA_VISIBLE_DEVICES'] = '{}'.format(int(gpu_id))
-
     # load network module
     state = torch.load(chk_file)
     net_module = importlib.import_module('segmentation3d.network.' + state['net'])
     net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
-    net = nn.parallel.DataParallel(net)
+    net = nn.parallel.DataParallel(net, device_ids=[0])
     net.load_state_dict(state['state_dict'])
     net.eval()
     net = net.cuda()
-
     del os.environ['CUDA_VISIBLE_DEVICES']
 
   else:
     state = torch.load(chk_file, map_location='cpu')
     net_module = importlib.import_module('segmentation3d.network.' + state['net'])
     net = net_module.SegmentationNet(state['in_channels'], state['out_channels'], state['dropout'])
-    net = nn.parallel.DataParallel(net)
     net.load_state_dict(state['state_dict'])
     net.eval()
 
@@ -333,11 +329,11 @@ def main():
                        '2. A text file containing paths of all testing images\n'\
                        '3. A folder containing all testing images\n'
 
-    default_input = '/home/qinliu/projects/CT_Dental/datasets_debug/test.txt'
-    default_model = '/home/qinliu/projects/CT_Dental/models/model_0227_2020/model1_master_branch'
-    default_output = '/home/qinliu/projects/CT_Dental/results/model_0227_2020/model1_master_branch_debug'
+    default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets_debug/test_debug.txt'
+    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0227_2020/model1_cpu1'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0227_2020/model1_cpu1'
     default_seg_name = 'result.mha'
-    default_gpu_id = 0
+    default_gpu_id = -1
 
     parser = argparse.ArgumentParser(description=long_description)
     parser.add_argument('-i', '--input', default=default_input, help='input folder/file for intensity images')
