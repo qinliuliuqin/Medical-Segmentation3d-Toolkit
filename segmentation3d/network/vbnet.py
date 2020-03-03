@@ -24,14 +24,14 @@ class SegmentationNet(nn.Module):
     def __init__(self, in_channels, out_channels, dropout_turn_on=False):
         super(SegmentationNet, self).__init__()
         self.in_block = InputBlock(in_channels, 16)
-        self.down_32 = DownBlock(16, 1, compression=True)
+        self.down_32 = DownBlock(16, 1, compression=False)
         self.down_64 = DownBlock(32, 2, compression=True)
         self.down_128 = DownBlock(64, 3, compression=True)
         self.down_256 = DownBlock(128, 3, compression=True)
         self.up_256 = UpBlock(256, 256, 3, compression=True)
         self.up_128 = UpBlock(256, 128, 3, compression=True)
-        self.up_64 = UpBlock(128, 64, 2, compression=True)
-        self.up_32 = UpBlock(64, 32, 1, compression=True)
+        self.up_64 = UpBlock(128, 64, 2, compression=False)
+        self.up_32 = UpBlock(64, 32, 1, compression=False)
         self.out_block = OutputBlock(32, out_channels)
         self.dropout_turn_on = dropout_turn_on
         if self.dropout_turn_on:
