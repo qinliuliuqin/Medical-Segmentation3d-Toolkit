@@ -7,7 +7,7 @@ class InputBlock(nn.Module):
   def __init__(self, in_channels, out_channels):
     super(InputBlock, self).__init__()
     self.conv = nn.Conv3d(in_channels, out_channels, kernel_size=3, padding=1)
-    self.gn = nn.GroupNorm(num_groups=out_channels // 4, num_channels=out_channels)
+    self.gn = nn.GroupNorm(1, num_channels=out_channels)
     self.act = nn.ReLU(inplace=True)
 
   def forward(self, input):
