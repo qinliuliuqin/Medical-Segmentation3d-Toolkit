@@ -330,10 +330,10 @@ def main():
                        '3. A folder containing all testing images\n'
 
     default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
-    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0227_2020/model1_master_0.4'
-    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0227_2020/model1_master_0.4'
+    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0227_2020/model1_master_0.4_contrast'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0227_2020/model1_master_0.4_contrast'
     default_seg_name = 'seg.mha'
-    default_gpu_id =1
+    default_gpu_id =7
 
     parser = argparse.ArgumentParser(description=long_description)
     parser.add_argument('-i', '--input', default=default_input, help='input folder/file for intensity images')
