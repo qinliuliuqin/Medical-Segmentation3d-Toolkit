@@ -61,9 +61,9 @@ def test_cal_dsc_batch():
   test_file = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
   gt_folder = '/shenlab/lab_stor6/qinliu/CT_Dental/data'
   gt_name = 'seg.mha'
-  seg_folder = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0224_2020/model1_master_branch_spacing0.8'
+  seg_folder = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0227_2020/model1_master_0.4_contrast'
   seg_name = 'seg.mha'
-  result_file = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0224_2020/model1_master_branch_spacing0.8/results.csv'
+  result_file = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0227_2020/model1_master_0.4_contrast/results.csv'
   
   file_list, case_list = read_test_txt(test_file)
   gt_files = []

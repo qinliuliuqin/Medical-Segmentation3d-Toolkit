@@ -13,16 +13,16 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/home/qinliu/projects/CT_Dental/datasets_debug/train.txt'
+__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/home/qinliu/projects/CT_Dental/models/model_0227_2020/model1_master_branch'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0227_2020/model1_master_0.4_contrast'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
-__C.general.num_gpus = 1
+__C.general.num_gpus = 3
 
 # random seed used in training (debugging purpose)
 __C.general.seed = 0
@@ -102,13 +102,13 @@ __C.net.dropout_turn_on = False
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 2001
+__C.train.epochs = 5001
 
 # the number of samples in a batch
-__C.train.batchsize = 1
+__C.train.batchsize = 6
 
 # the number of threads for IO
-__C.train.num_threads = 1
+__C.train.num_threads = 6
 
 # the learning rate
 __C.train.lr = 1e-4
