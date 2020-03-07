@@ -1,16 +1,16 @@
 import unittest
 import torch
-from segmentation3d.network.module.conv_bn_relu3 import ConvBnRelu3
+from segmentation3d.network.module.conv_gn_relu3 import ConvGnRelu3
 
 
 class TestBnReluConv3Methods(unittest.TestCase):
   def setUp(self):
     self.in_channels = 1
     self.out_channels = 16
-    self.model1 = ConvBnRelu3(self.in_channels, self.out_channels, ksize=3,
+    self.model1 = ConvGnRelu3(self.in_channels, self.out_channels, ksize=3,
                               stride=1, padding=1, do_act=True)
 
-    self.model2 = ConvBnRelu3(self.in_channels, self.out_channels, ksize=2,
+    self.model2 = ConvGnRelu3(self.in_channels, self.out_channels, ksize=2,
                               stride=2, padding=0, do_act=True)
 
     print('Total params: %d' % sum(p.numel() for p in self.model1.parameters()))

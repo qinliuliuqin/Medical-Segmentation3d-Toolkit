@@ -1,5 +1,5 @@
 import torch.nn as nn
-from segmentation3d.network.module.conv_bn_relu3 import ConvBnRelu3, BottConvBnRelu3
+from segmentation3d.network.module.conv_gn_relu3 import ConvGnRelu3, BottConvGnRelu3
 
 
 class ResidualBlock3(nn.Module):
@@ -11,9 +11,9 @@ class ResidualBlock3(nn.Module):
         layers = []
         for i in range(num_convs):
             if i != num_convs - 1:
-                layers.append(ConvBnRelu3(channels, channels, ksize, stride, padding, do_act=True))
+                layers.append(ConvGnRelu3(channels, channels, ksize, stride, padding, do_act=True))
             else:
-                layers.append(ConvBnRelu3(channels, channels, ksize, stride, padding, do_act=False))
+                layers.append(ConvGnRelu3(channels, channels, ksize, stride, padding, do_act=False))
 
         self.ops = nn.Sequential(*layers)
         self.act = nn.ReLU(inplace=True)
@@ -34,9 +34,9 @@ class BottResidualBlock3(nn.Module):
         layers = []
         for i in range(num_convs):
             if i != num_convs - 1:
-                layers.append(BottConvBnRelu3(channels, channels, ksize, stride, padding, ratio, do_act=True))
+                layers.append(BottConvGnRelu3(channels, channels, ksize, stride, padding, ratio, do_act=True))
             else:
-                layers.append(BottConvBnRelu3(channels, channels, ksize, stride, padding, ratio, do_act=False))
+                layers.append(BottConvGnRelu3(channels, channels, ksize, stride, padding, ratio, do_act=False))
 
         self.ops = nn.Sequential(*layers)
         self.act = nn.ReLU(inplace=True)
