@@ -33,6 +33,10 @@ def train(config_file):
     if cfg.general.resume_epoch < 0 and os.path.isdir(cfg.general.save_dir):
         shutil.rmtree(cfg.general.save_dir)
 
+    if not os.path.isdir(cfg.general.save_dir):
+        os.makedirs(cfg.general.save_dir)
+        shutil.copy(config_file, os.path.join(cfg.general.save_dir, 'train_config.py'))
+
     # enable logging
     log_file = os.path.join(cfg.general.save_dir, 'train_log.txt')
     logger = setup_logger(log_file, 'seg3d')
