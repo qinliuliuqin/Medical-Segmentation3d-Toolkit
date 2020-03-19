@@ -97,4 +97,4 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, config_file, max_stride
     infer_config_file = os.path.join(os.path.join(config_folder, 'config', 'infer_config.py'))
     shutil.copy(infer_config_file, os.path.join(chk_folder, 'infer_config.py'))
 
-    shutil.copy(config_file, os.path.join(chk_folder, 'train_config.py'))
+    shutil.copy(os.path.join(cfg.general.save_dir, 'train_config.py'), os.path.join(chk_folder, 'train_config.py'))
