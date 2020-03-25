@@ -1,4 +1,4 @@
-FROM nvidia/cuda:cuda:10.0-runtime-ubuntu18.04
+FROM nvidia/cuda:10.0-runtime-ubuntu18.04
 WORKDIR /usr/seg
 
 RUN apt-get update -y && apt-get install -y \
