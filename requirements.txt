@@ -1,3 +1,0 @@
-numpy
-SimpleITK
-torch>1.3
