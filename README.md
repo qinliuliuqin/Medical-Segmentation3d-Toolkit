@@ -2,6 +2,15 @@
 
 Medical image 3D segmentation engine.
 
+# Installation
+This codebase is only tested on Linux (Ubuntu).
+   ```shell
+   git clone https://github.com/qinliuliuqin/Medical-Segmentation3d-Toolkit.git
+   cd Medical-Segmentation3d-Toolkit
+   pip install -e .
+   ```
+Do not forget the last '.' that indicates the current folder.
+
 # Usage
 
 1. Clone the repository:
