@@ -65,7 +65,7 @@ def train(config_file):
                              num_workers=cfg.train.num_threads, pin_memory=True)
 
     net_module = importlib.import_module('segmentation3d.network.' + cfg.net.name)
-    net = net_module.SegmentationNet(dataset.num_modality(), cfg.dataset.num_classes, cfg.net.dropout_turn_on)
+    net = net_module.SegmentationNet(dataset.num_modality(), cfg.dataset.num_classes)
     max_stride = net.max_stride()
     net_module.parameters_kaiming_init(net)
     if cfg.general.num_gpus > 0:
