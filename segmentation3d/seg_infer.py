@@ -330,8 +330,8 @@ def main():
                        '3. A folder containing all testing images\n'
 
     default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/test.txt'
-    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0321_2020/model1_contrast'
-    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0321_2020/model1_contrast'
+    default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0305_2020/model1_groupnorm_0.4_contrast'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0305_2020/model1_groupnorm_0.4_contrast'
     default_seg_name = 'seg.mha'
     default_gpu_id =7
 
