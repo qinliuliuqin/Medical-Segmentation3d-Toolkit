@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-required_packages = ['numpy', 'torch>1.3', 'easydict', 'SimpleITK']
+required_packages = ['numpy', 'torch', 'easydict', 'SimpleITK']
 
 
 setup(name='medseg3d',
