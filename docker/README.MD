@@ -17,7 +17,31 @@ Run the following command to learn how to use the test function:
    ```shell
    seg_infer --help
    ```   
-You will see 
+You will see the following instructions:
+   ```shell
+   usage: seg_infer [-h] [-i INPUT] [-m MODEL] [-o OUTPUT] [-n SEG_NAME]
+                 [-g GPU_ID] [--save_image] [--save_prob] [--save_uncertainty]
+
+Inference engine for 3d medical image segmentation It supports multiple kinds
+of input: 1. Single image 2. A text file containing paths of all testing
+images 3. A folder containing all testing images
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT, --input INPUT
+                        input folder/file for intensity images
+  -m MODEL, --model MODEL
+                        model root folder
+  -o OUTPUT, --output OUTPUT
+                        output folder for segmentation
+  -n SEG_NAME, --seg_name SEG_NAME
+                        the name of the segmentation result to be saved
+  -g GPU_ID, --gpu_id GPU_ID
+                        the gpu id to run model, set to -1 if using cpu only.
+  --save_image          whether to save original image
+  --save_prob           whether to save all prob maps
+  --save_uncertainty    whether to save single prob map
+   ```   
 
 By default, it will segment the test image "/usr/seg/test_data/org.mha", and save the segmentation result to the folder "/usr/seg/results/org".
 The ground truth of the test image is "/usr/seg/test_data/gt.mha". 
