@@ -1,4 +1,4 @@
-This repository contains a general 3D segmentation engine for mandible and midface segmentation from CT/CBCT image.
+This is the 3rd version of the dental segmentation tool.
 As we only tested the code in linux (Ubuntu 18.04) OS, we highly recommend you to run it in the same OS.
 In addition to that, please install nvidia-docker first, and then, follow the steps listed below to get your segmentation results.
 
