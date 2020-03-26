@@ -8,7 +8,7 @@ RUN apt-get update -y && apt-get install -y \
  git
 
 RUN pip3 install numpy && \
-  pip3 install https://download.pytorch.org/whl/cu100/torch-1.1.0-cp36-cp36m-linux_x86_64.whl
-
+  pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+  
 RUN git clone https://github.com/qinliuliuqin/Medical-Segmentation3d-Toolkit.git
 RUN cd Medical-Segmentation3d-Toolkit && pip3 install -e .
