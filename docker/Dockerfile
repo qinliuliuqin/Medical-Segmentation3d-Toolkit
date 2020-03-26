@@ -7,8 +7,12 @@ RUN apt-get update -y && apt-get install -y \
  curl \
  git
 
-RUN pip3 install numpy && \
-  pip install torch==1.4.0+cpu torchvision==0.5.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
-  
+RUN pip3 install nano
+RUN pip3 install numpy
+RUN pip3 install torch torchvision
+
+COPY infer.sh /usr/seg 
+
 RUN git clone https://github.com/qinliuliuqin/Medical-Segmentation3d-Toolkit.git
+RUN git clone https://github.com/qinliuliuqin/Model-Zoo.git
 RUN cd Medical-Segmentation3d-Toolkit && pip3 install -e .
