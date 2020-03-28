@@ -1,0 +1,4 @@
+label,name,R,G,B
+0,background,0,0,0
+1,object1,255,0,0
+2,object2,0,255,0
