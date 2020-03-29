@@ -170,12 +170,11 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
   return mean_prob_maps, std_maps
 
 
-def segmentation(input_path, model_folder, output_folder, color_config, seg_name, gpu_id, save_image, save_prob, save_uncertainty):
+def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob, save_uncertainty):
     """ volumetric image segmentation engine
     :param input_path:          The path of text file, a single image file or a root dir with all image files
     :param model_folder:        The path of trained model
     :param output_folder:       The path of out folder
-    :param color_config:        The color config file in csv format
     :param gpu_id:              Which gpu to use, by default, 0
     :param save_image:          Whether to save original image
     :param save_prob:           Whether to save all probability maps
@@ -302,11 +301,6 @@ def segmentation(input_path, model_folder, output_folder, color_config, seg_name
       # save results
       sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
       
-      # save screenshot
-      # color_dict = get_color_dict(color_config)
-      # save_png_path = os.path.join(output_folder, case_name, 'render.png')
-      # vtk_surface_rendering(mask, color_dict, [400, 400], save_png_path)
-
       if save_image:
         sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
 
@@ -340,8 +334,6 @@ def main():
     default_input = '/shenlab/lab_stor6/deqiang/Pre_Post_Facial_Data-Ma/original_images'
     default_model = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0305_2020/model1_groupnorm_0.4_contrast'
     default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/Pre_Post_Facial_Data-Ma_debug'
-    #default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/model_0305_2020/model1_groupnorm_0.4_contrast'
-    default_color_config_file = '/home/qinliu19/projects/Medical-Segmentation3d-Toolkit/segmentation3d/vis/color_config.csv'
     default_seg_name = 'seg.mha'
     default_gpu_id =6
 
@@ -349,7 +341,6 @@ def main():
     parser.add_argument('-i', '--input', default=default_input, help='input folder/file for intensity images')
     parser.add_argument('-m', '--model', default=default_model, help='model root folder')
     parser.add_argument('-o', '--output', default=default_output, help='output folder for segmentation')
-    parser.add_argument('-r', '--color_config', default=default_color_config_file, help='color configuration file for mask render')
     parser.add_argument('-n', '--seg_name', default=default_seg_name, help='the name of the segmentation result to be saved')
     parser.add_argument('-g', '--gpu_id', type=int, default=default_gpu_id, help='the gpu id to run model, set to -1 if using cpu only.')
     parser.add_argument('--save_image', help='whether to save original image', action="store_true")
@@ -357,7 +348,7 @@ def main():
     parser.add_argument('--save_uncertainty', help='whether to save single prob map', action="store_true")
 
     args = parser.parse_args()
-    segmentation(args.input, args.model, args.output, args.color_config, args.seg_name,
+    segmentation(args.input, args.model, args.output, args.seg_name,
       args.gpu_id, args.save_image, args.save_prob, args.save_uncertainty)
 
 
