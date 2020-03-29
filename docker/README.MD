@@ -58,5 +58,5 @@ First, open a new shell in your host machine, and copy your data to the containe
 The test-folder which contains your test images is copying from your host machine to the container that you are running now. You can check it in your container.
 After this step, you can close the new shell in your host machine.
 
-Second, run the command in your container: "vseg_test -i "./usr/seg/[test-folder]". The segmentation results will be saved in the folder "/usr/seg/results". 
+Second, run the command in your container: "./infer.sh". The segmentation results will be saved in the folder "/usr/seg/results". 
 You can copy all the test results from the container to your host machine by running: "sudo docker cp [container-id]:/usr/seg/results ."
