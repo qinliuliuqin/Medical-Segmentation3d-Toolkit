@@ -12,7 +12,7 @@ from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.dataloader.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
     copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
-    remove_small_connected_component
+    remove_small_connected_component, get_bounding_box
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 from segmentation3d.vis.vtk_rendering import vtk_surface_rendering, get_color_dict
 
@@ -66,21 +66,18 @@ def read_test_folder(folder_path):
     return file_name_list, file_path_list
 
 
-def load_seg_model(model_folder, gpu_id=0):
-    """ load segmentation model from folder
+def load_single_model(model_folder, gpu_id=0):
+    """ load single segmentation model from folder
     :param model_folder:    the folder containing the segmentation model
     :param gpu_id:          the gpu device id to run the segmentation model
     :return: a dictionary containing the model and inference parameters
     """
     assert os.path.isdir(model_folder), 'Model folder does not exist: {}'.format(model_folder)
 
-    # load inference config file
-    latest_checkpoint_dir = get_checkpoint_folder(os.path.join(model_folder, 'checkpoints'), -1)
-    infer_cfg = load_config(os.path.join(latest_checkpoint_dir, 'infer_config.py'))
     model = edict()
-    model.infer_cfg = infer_cfg
 
     # load model state
+    latest_checkpoint_dir = get_checkpoint_folder(os.path.join(model_folder, 'checkpoints'), -1)
     chk_file = os.path.join(latest_checkpoint_dir, 'params.pth')
 
     if gpu_id >= 0:
@@ -120,6 +117,34 @@ def load_seg_model(model_folder, gpu_id=0):
             raise ValueError('Unsupported normalization type.')
 
     return model
+
+
+def load_models(model_folder, gpu_id=0):
+    """ load segmentation model from folder
+    :param model_folder:    the folder containing the segmentation model
+    :param gpu_id:          the gpu device id to run the segmentation model
+    :return: a dictionary containing the model and inference parameters
+    """
+    assert os.path.isdir(model_folder), 'Model folder does not exist: {}'.format(model_folder)
+
+    # load inference config file
+    infer_cfg = load_config(os.path.join(model_folder, 'infer_config.py'))
+    models = edict()
+    models.infer_cfg = infer_cfg
+
+    # load coarse model if it is enabled
+    models.coarse_model = None
+    if models.infer_cfg.general.enable_coarse:
+        coarse_model_folder = os.path.join(model_folder, models.infer_cfg.coarse.model_name)
+        coarse_model = load_single_model(coarse_model_folder, gpu_id)
+        models.coarse = coarse_model
+
+    # load fine model
+    fine_model_folder = os.path.join(model_folder, models.infer_cfg.fine.model_name)
+    fine_model = load_single_model(fine_model_folder, gpu_id)
+    models.fine_model = fine_model
+
+    return models
 
 
 def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
@@ -163,6 +188,83 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
     return mean_prob_maps
 
 
+def segmentation_volume(model, image, cfg, start_voxel, end_voxel, use_gpu):
+    """ Segment the volume
+    :param model:           the loaded segmentation model.
+    :param image:           the image volume.
+    :param start_voxel:     the start voxel of the volume of interest (inclusive).
+    :param end_voxel:       the end voxel of the volume of interest (exclusive).
+    :param use_gpu:         whether to use gpu or not, bool type.
+    :return:
+      mean_prob_maps:        the mean probability maps of all classes
+      std_maps:              the standard deviation maps of all classes
+    """
+    assert isinstance(image, sitk.Image)
+
+    iso_image = resample_spacing(image, model['spacing'], model['max_stride'], model['interpolation'])
+
+    num_classes = model['out_channels']
+    iso_mean_probs = []
+    for idx in range(num_classes):
+        iso_mean_prob = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
+        iso_mean_prob.CopyInformation(iso_image)
+        iso_mean_probs.append(iso_mean_prob)
+
+    partition_type = cfg.partition_type
+    partition_stride = cfg.partition_stride
+    if partition_type == 'DISABLE':
+        start_voxels = [[0, 0, 0]]
+        end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
+
+    elif partition_type == 'SIZE':
+        partition_size = cfg.partition_size
+        max_stride = model['max_stride']
+        start_voxels, end_voxels = \
+            image_partition_by_fixed_size(iso_image, partition_size, partition_stride, max_stride)
+
+    else:
+        raise ValueError('Unsupported partition type!')
+
+    begin = time.time()
+    iso_partition_overlap_count = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
+    iso_partition_overlap_count.CopyInformation(iso_image)
+    for idx in range(len(start_voxels)):
+        start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
+
+        voi_mean_probs = segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu)
+        for idy in range(num_classes):
+            iso_mean_probs[idy] = copy_image(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
+
+        iso_partition_overlap_count = add_image_value(iso_partition_overlap_count, start_voxel, end_voxel, 1.0)
+        print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
+
+    iso_partition_overlap_count = sitk.Cast(1.0 / iso_partition_overlap_count, sitk.sitkFloat32)
+    for idx in range(num_classes):
+        iso_mean_probs[idx] = iso_mean_probs[idx] * iso_partition_overlap_count
+
+    # resample to the original spacing
+    mean_probs = []
+    for idx in range(num_classes):
+        mean_probs.append(resample(iso_mean_probs[idx], image, 'LINEAR'))
+
+    # get segmentation mask from the mean_probability maps
+    mean_probs_tensor = convert_image_to_tensor(mean_probs)
+    _, mask = mean_probs_tensor.max(0)
+    mask = convert_tensor_to_image(mask, dtype=np.int8)
+    mask.CopyInformation(image)
+
+    # pick the largest component
+    if cfg.pick_largest_cc:
+        mask = pick_largest_connected_component(mask, list(range(1, num_classes)))
+
+    # remove small connected component
+    if cfg.remove_small_cc > 0:
+        threshold = cfg.remove_small_cc
+        mask = remove_small_connected_component(mask, list(range(1, num_classes)), threshold)
+
+    return mean_probs, mask
+
+
 def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob):
     """ volumetric image segmentation engine
     :param input_path:          The path of text file, a single image file or a root dir with all image files
@@ -176,7 +278,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
     # load model
     begin = time.time()
-    model = load_seg_model(model_folder, gpu_id)
+    models = load_models(model_folder, gpu_id)
     load_model_time = time.time() - begin
 
     # load test images
@@ -210,96 +312,38 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         image = sitk.ReadImage(file_path, sitk.sitkFloat32)
         read_image_time = time.time() - begin
 
-        iso_image = resample_spacing(image, model['spacing'], model['max_stride'], model['interpolation'])
-
-        num_classes = model['out_channels']
-        iso_mean_probs, iso_std_maps = [], []
-        for idx in range(num_classes):
-            iso_mean_prob = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
-            iso_mean_prob.CopyInformation(iso_image)
-            iso_mean_probs.append(iso_mean_prob)
-
-            iso_std_map = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
-            iso_std_map.CopyInformation(iso_image)
-            iso_std_maps.append(iso_std_map)
-
-        partition_type = model['infer_cfg'].general.partition_type
-        partition_stride = model['infer_cfg'].general.partition_stride
-        if partition_type == 'DISABLE':
-            start_voxels = [[0, 0, 0]]
-            end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
-
-        elif partition_type == 'SIZE':
-            partition_size = model['infer_cfg'].general.partition_size
-            max_stride = model['max_stride']
-            start_voxels, end_voxels = \
-                image_partition_by_fixed_size(iso_image, partition_size, partition_stride, max_stride)
-
-        else:
-            raise ValueError('Unsupported partition type!')
-
+        # coarse segmentation
         begin = time.time()
-        iso_partition_overlap_count = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
-        iso_partition_overlap_count.CopyInformation(iso_image)
-        for idx in range(len(start_voxels)):
-            start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
+        start_voxel, end_voxel = [0, 0, 0], [image.GetSize()[idx] - 1 for idx in range(3)]
+        if models['coarse_model'] is not None:
+            _, mask = segmentation_volume(models['coarse_model'], image, None, None, gpu_id > 0)
+            start_voxel, end_voxel = get_bounding_box(mask, 1, models['coarse_model']['out_channels'] - 1)
 
-            voi_mean_probs = segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0)
-            for idy in range(num_classes):
-                iso_mean_probs[idy] = copy_image(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
-
-            iso_partition_overlap_count = add_image_value(iso_partition_overlap_count, start_voxel, end_voxel, 1.0)
-            print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
-
-        iso_partition_overlap_count = sitk.Cast(1.0 / iso_partition_overlap_count, sitk.sitkFloat32)
-        for idx in range(num_classes):
-            iso_mean_probs[idx] = iso_mean_probs[idx] * iso_partition_overlap_count
-
-        # resample to the original spacing
-        mean_probs = []
-        for idx in range(num_classes):
-            mean_probs.append(resample(iso_mean_probs[idx], image, 'LINEAR'))
-
-        # get segmentation mask from the mean_probability maps
-        mean_probs_tensor = convert_image_to_tensor(mean_probs)
-        _, mask = mean_probs_tensor.max(0)
-        mask = convert_tensor_to_image(mask, dtype=np.int8)
-        mask.CopyInformation(image)
+        mean_probs, mask = segmentation_volume(models['fine_model'], image, start_voxel, end_voxel, gpu_id > 0)
         inference_time = time.time() - begin
 
+        # save results
         begin = time.time()
         case_name = file_name_list[i]
         if not os.path.isdir(os.path.join(output_folder, case_name)):
             os.makedirs(os.path.join(output_folder, case_name))
 
-        # pick the largest component
-        if model['infer_cfg'].general.pick_largest_cc:
-            mask = pick_largest_connected_component(mask, list(range(1, num_classes)))
-
-        # remove small connected component
-        if model['infer_cfg'].general.remove_small_cc > 0:
-            threshold = model['infer_cfg'].general.remove_small_cc
-            mask = remove_small_connected_component(mask, list(range(1, num_classes)), threshold)
-
-        post_processing_time = time.time() - begin
-
-        begin = time.time()
-        # save results
         sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
 
         if save_image:
             sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
 
         if save_prob:
+            num_classes = models['fine_model']['out_channels']
             for idx in range(num_classes):
                 mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(idx))
                 sitk.WriteImage(mean_probs[idx], mean_prob_save_path, True)
-
         save_time = time.time() - begin
 
-        total_test_time = load_model_time + read_image_time + inference_time + post_processing_time + save_time
+        total_test_time = load_model_time + read_image_time + inference_time + save_time
         total_inference_time += inference_time
         num_success_case += 1
 
-        print('total test time: {:.2f}, average inference time: {:.2f}'.format(total_test_time,
-                                                                               total_inference_time / num_success_case))
+        print('total test time: {:.2f}, average inference time: {:.2f}'.format(
+            total_test_time, total_inference_time / num_success_case)
+        )
