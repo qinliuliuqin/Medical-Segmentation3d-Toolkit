@@ -88,7 +88,7 @@ def save_intermediate_results(idxs, crops, masks, outputs, frames, file_names, o
                 sitk.WriteImage(image, os.path.join(case_out_folder, 'batch_{}_crop_{}.nii.gz'.format(i, modality_idx)))
 
         if masks is not None:
-            mask = convert_tensor_to_image(masks[i, 0], dtype=np.int8)
+            mask = convert_tensor_to_image(masks[i, 0], dtype=np.int32)
             set_image_frame(mask, frames[i].numpy())
             sitk.WriteImage(mask, os.path.join(case_out_folder, 'batch_{}_mask.nii.gz'.format(i)))
 
