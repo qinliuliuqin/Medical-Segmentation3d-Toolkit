@@ -20,21 +20,54 @@ __C.general.pick_largest_cc = True
 # 2) a numerical number larger than 0: the threshold size of connected component
 __C.general.remove_small_cc = 0
 
+# Enable coarse model
+__C.general.enable_coarse = False
+
+##################################
+# Coarse model parameters
+##################################
+__C.coarse = {}
+
+# the folder name containing the coarse model
+__C.coarse.model_name = 'model_coarse'
+
 # partition type in the inference stage
 # Options:
 # 1) SIZE:    partition to blocks with specified size (unit: mm), set partition_size = [size_x, size_y, size_z]
 # 2) DISABLE: no partition
-__C.general.partition_type = 'SIZE'
+__C.coarse.partition_type = 'DISABLE'
 
 # if partition type = 'SIZE', set the partition size (unit: mm).
 # it is recommended to set this value as the same with the physical cropping size in the training phase
-__C.general.partition_size = [51.2, 51.2, 51.2]
+__C.coarse.partition_size = [51.2, 51.2, 51.2]
 
 # the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
 # between the partition windows. Otherwise, the value of the overlapped area will be averaged.
 # it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
 # different partition window.
-__C.general.partition_stride = [51.2, 51.2, 51.2]
+__C.coarse.partition_stride = [51.2, 51.2, 51.2]
 
-# number of iteration in bayesian segmentation, set it as 1 for non-bayesian segmentation model
-__C.general.bayesian_iteration = 1
+##################################
+# Fine model parameters
+##################################
+
+__C.fine = {}
+
+# the name of the folder containing the coarse model
+__C.fine.model_name = 'model_fine'
+
+# partition type in the inference stage
+# Options:
+# 1) SIZE:    partition to blocks with specified size (unit: mm), set partition_size = [size_x, size_y, size_z]
+# 2) DISABLE: no partition
+__C.fine.partition_type = 'SIZE'
+
+# if partition type = 'SIZE', set the partition size (unit: mm).
+# it is recommended to set this value as the same with the physical cropping size in the training phase
+__C.coarse.partition_size = [51.2, 51.2, 51.2]
+
+# the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
+# between the partition windows. Otherwise, the value of the overlapped area will be averaged.
+# it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
+# different partition window.
+__C.coarse.partition_stride = [51.2, 51.2, 51.2]

@@ -32,8 +32,7 @@ def train(config_file):
     if os.path.isdir(cfg.general.save_dir):
         if cfg.general.resume_epoch < 0:
             shutil.rmtree(cfg.general.save_dir)
-        else:
-            shutil.copy(config_file, os.path.join(cfg.general.save_dir, 'train_config.py'))
+        shutil.copy(config_file, os.path.join(cfg.general.save_dir, 'train_config.py'))
     else:
         os.makedirs(cfg.general.save_dir)
         shutil.copy(config_file, os.path.join(cfg.general.save_dir, 'train_config.py'))
