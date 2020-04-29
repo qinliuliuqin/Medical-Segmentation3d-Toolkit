@@ -104,16 +104,3 @@ def vtk_surface_rendering(image, color_dict, window_size, save_figure_path=None,
     writer.SetFileName(save_figure_path)
     writer.SetInputData(w2if.GetOutput())
     writer.Write()
-
-
-if __name__ == '__main__':
-
-  # Path to the .mha file
-  seg_path = "/home/qinliu/projects/CT_Dental/results/model_0305_2020/Pre_Post_Facial_Data-Ma/n03_orginImg_post/seg.mha"
-  label = sitk.ReadImage(seg_path)
-  
-  color_config_path = "/home/qinliu/projects/Medical-Segmentation3d-Toolkit/segmentation3d/vis/color_config.csv"
-  color_dict = get_color_dict(color_config_path)
-  
-  figure_save_path = "/home/qinliu/screenshot.png"
-  vtk_surface_rendering(label, color_dict, [800, 800], figure_save_path)
