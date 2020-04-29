@@ -26,11 +26,9 @@ def main():
     parser.add_argument('-g', '--gpu_id', type=int, default=default_gpu_id, help='the gpu id to run model, set to -1 if using cpu only.')
     parser.add_argument('--save_image', help='whether to save original image', action="store_true")
     parser.add_argument('--save_prob', help='whether to save all prob maps', action="store_true")
-    parser.add_argument('--save_uncertainty', help='whether to save single prob map', action="store_true")
 
     args = parser.parse_args()
-    segmentation(args.input, args.model, args.output, args.seg_name,
-      args.gpu_id, args.save_image, args.save_prob, args.save_uncertainty)
+    segmentation(args.input, args.model, args.output, args.seg_name, args.gpu_id, args.save_image, args.save_prob)
 
 
 if __name__ == '__main__':

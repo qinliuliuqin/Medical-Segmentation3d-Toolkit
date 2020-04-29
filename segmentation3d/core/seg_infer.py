@@ -144,13 +144,11 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
     if use_gpu:
         roi_image_tensor = roi_image_tensor.cuda()
 
-    bayesian_iteration = model['infer_cfg'].general.bayesian_iteration
     with torch.no_grad():
         probs = model['net'](roi_image_tensor)
         probs = torch.unsqueeze(probs, 0)
-        for i in range(bayesian_iteration - 1):
-            probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
-        mean_probs, stddev_maps = torch.mean(probs, 0), torch.std(probs, 0)
+        probs = torch.cat((probs, torch.unsqueeze(model['net'](roi_image_tensor), 0)), 0)
+        mean_probs = torch.mean(probs, 0)
 
     num_classes = model['out_channels']
     assert num_classes == mean_probs.shape[1]
@@ -162,14 +160,10 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
         mean_prob.CopyInformation(roi_image)
         mean_prob_maps.append(mean_prob)
 
-        std_map = convert_tensor_to_image(stddev_maps[0][idx].data, dtype=np.float)
-        std_map.CopyInformation(roi_image)
-        std_maps.append(std_map)
-
-    return mean_prob_maps, std_maps
+    return mean_prob_maps
 
 
-def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob, save_uncertainty):
+def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob):
     """ volumetric image segmentation engine
     :param input_path:          The path of text file, a single image file or a root dir with all image files
     :param model_folder:        The path of trained model
@@ -177,7 +171,6 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     :param gpu_id:              Which gpu to use, by default, 0
     :param save_image:          Whether to save original image
     :param save_prob:           Whether to save all probability maps
-    :param save_uncertainty:    Whether to save all uncertainty maps
     :return: None
     """
 
@@ -251,11 +244,9 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         for idx in range(len(start_voxels)):
             start_voxel, end_voxel = start_voxels[idx], end_voxels[idx]
 
-            voi_mean_probs, voi_std_maps = segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0)
+            voi_mean_probs = segmentation_voi(model, iso_image, start_voxel, end_voxel, gpu_id > 0)
             for idy in range(num_classes):
                 iso_mean_probs[idy] = copy_image(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
-                if save_uncertainty:
-                    iso_std_maps[idy] = copy_image(voi_std_maps[idy], start_voxel, end_voxel, iso_std_maps[idy])
 
             iso_partition_overlap_count = add_image_value(iso_partition_overlap_count, start_voxel, end_voxel, 1.0)
             print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
@@ -263,15 +254,11 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         iso_partition_overlap_count = sitk.Cast(1.0 / iso_partition_overlap_count, sitk.sitkFloat32)
         for idx in range(num_classes):
             iso_mean_probs[idx] = iso_mean_probs[idx] * iso_partition_overlap_count
-            if save_uncertainty:
-                iso_std_maps[idx] = iso_std_maps[idx][:] * iso_partition_overlap_count[:]
 
         # resample to the original spacing
-        mean_probs, std_maps = [], []
+        mean_probs = []
         for idx in range(num_classes):
             mean_probs.append(resample(iso_mean_probs[idx], image, 'LINEAR'))
-            if save_uncertainty:
-                std_maps.append(resample(iso_std_maps[idx], image, 'LINEAR'))
 
         # get segmentation mask from the mean_probability maps
         mean_probs_tensor = convert_image_to_tensor(mean_probs)
@@ -308,10 +295,6 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
                 mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(idx))
                 sitk.WriteImage(mean_probs[idx], mean_prob_save_path, True)
 
-        if save_uncertainty:
-            for idx in range(num_classes):
-                std_map_save_path = os.path.join(output_folder, case_name, 'std_map_{}.mha'.format(idx))
-                sitk.WriteImage(std_maps[idx], std_map_save_path, True)
         save_time = time.time() - begin
 
         total_test_time = load_model_time + read_image_time + inference_time + post_processing_time + save_time
