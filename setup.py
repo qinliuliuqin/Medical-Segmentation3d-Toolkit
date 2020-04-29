@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 required_packages = ['numpy', 'torch', 'easydict', 'SimpleITK']
 
 
-setup(name='medseg3d',
+setup(name='segmentation3d',
     version='1.0',
     description='3D Medical Image Segmentation Toolkit.',
     packages=find_packages(),
