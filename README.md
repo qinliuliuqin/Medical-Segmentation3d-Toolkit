@@ -54,7 +54,7 @@ Do not forget the last '.' that indicates the current folder.
    WARNING: If you run `$ seg_infer` with no parameters, the program may crash because it will look for the default paths
    which are set according to my environment. 
    
-   If you are working on dental project and you want to segment bony structures from CBCT/CT images, you can 
+   Specifically, if you are working on dental project and you want to segment bony structures from CBCT/CT images, you can 
    download pretrained segmentation models on github (the latest model is `model_0429_2020`).
    ```
    $ git clone https://github.com/qinliuliuqin/Model-Zoo/tree/master/Dental/segmentation  
