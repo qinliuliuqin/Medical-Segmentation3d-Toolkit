@@ -234,10 +234,12 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
 
         # convert bounding box to the iso image frame
         if bbox_start_voxel is not None and bbox_end_voxel is not None:
-            bbox_start_world = image.TransformContinuousIndexToPhysicalPoint(bbox_start_voxel)
+            bbox_start_voxel_double = [float(bbox_start_voxel[idx]) for idx in range(3)]
+            bbox_start_world = image.TransformContinuousIndexToPhysicalPoint(bbox_start_voxel_double)
             bbox_start_voxel = image.TransformPhysicalPointToIndex(bbox_start_world)
 
-            bbox_end_world = image.TransformContinuousIndexToPhysicalPoint(bbox_end_voxel)
+            bbox_end_voxel_double = [float(bbox_end_voxel[idx]) for idx in range(3)]
+            bbox_end_world = image.TransformContinuousIndexToPhysicalPoint(bbox_end_voxel_double)
             bbox_end_voxel = image.TransformPhysicalPointToIndex(bbox_end_world)
             for idx in range(3):
                 bbox_start_voxel[idx] = max(0, bbox_start_voxel[idx])
