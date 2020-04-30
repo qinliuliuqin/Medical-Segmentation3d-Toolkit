@@ -357,10 +357,6 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
             )
 
             start_voxel, end_voxel = get_bounding_box(mask, None)
-
-            # debug only
-            print(start_voxel, end_voxel)
-
             mean_probs, mask = segmentation_volume(
                 models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
             )
