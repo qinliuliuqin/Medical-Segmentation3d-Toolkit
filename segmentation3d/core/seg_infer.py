@@ -239,9 +239,9 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
 
             bbox_end_world = image.TransformContinuousIndexToPhysicalPoint(bbox_end_voxel)
             bbox_end_voxel = image.TransformPhysicalPointToIndex(bbox_end_world)
-            for idx in range(3):
-                bbox_start_voxel[idx] = max(0, bbox_start_voxel[idx])
-                bbox_end_voxel[idx] = min(bbox_end_voxel[idx], iso_image.GetSize()[idx])
+
+            bbox_start_voxel = [max(0, bbox_start_voxel[idx]) for idx in range(3)]
+            bbox_end_voxel = [min(bbox_end_voxel[idx], iso_image.GetSize()[idx]) for idx in range(3)]
         else:
             bbox_start_voxel, bbox_end_voxel = [0, 0, 0], [iso_image.GetSize()[idx] for idx in range(3)]
 
