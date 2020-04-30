@@ -197,7 +197,7 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
     for idx in range(3):
         stride_size[idx] = min(bbox_size[idx], stride_size[idx])
 
-    num_partitions = [int(np.ceil((bbox_size[idx] - box_size[idx]) / stride_size[idx] + 1)) for idx in range(3)]
+    num_partitions = [int((bbox_size[idx] - box_size[idx]) // stride_size[idx] + 1) for idx in range(3)]
     start_voxels, end_voxels = [], []
     for idx in range(0, num_partitions[0]):
         for idy in range(0, num_partitions[1]):
@@ -209,11 +209,15 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
                 for dim in range(3):
                     if end_voxel[dim] > bbox_end_voxel[dim]:
                         end_voxel[dim] = bbox_end_voxel[dim]
-                        start_voxel[dim] = max(0, end_voxel[dim] - box_size[dim])
-                        start_voxel[dim] += (end_voxel[dim] - start_voxel[dim]) % max_stride
-                  
+                        start_voxel[dim] = end_voxel[dim] - box_size[dim]
+                        # start_voxel[dim] = max(0, end_voxel[dim] - box_size[dim])
+                        # start_voxel[dim] += (end_voxel[dim] - start_voxel[dim]) % max_stride
+                        assert start_voxel[dim] >= 0
+
                 start_voxels.append(start_voxel)
                 end_voxels.append(end_voxel)
+    # debug only
+    print(start_voxels, end_voxels)
 
     return start_voxels, end_voxels
 
