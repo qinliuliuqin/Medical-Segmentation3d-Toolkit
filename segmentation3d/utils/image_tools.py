@@ -466,10 +466,13 @@ def get_bounding_box(mask, selected_labels):
     selected_mask.CopyInformation(mask)
 
     bbox_filter = sitk.LabelShapeStatisticsImageFilter()
-    bbox_filter.Execute(selected_mask)
-    bbox = np.array(bbox_filter.GetBoundingBox(1))
-
-    bbox_start_voxel = [bbox[0], bbox[1], bbox[2]]
-    bbox_end_voxel = [bbox_start_voxel[0] + bbox[3], bbox_start_voxel[1] + bbox[4], bbox_start_voxel[2] + bbox[5]]
+    try:
+        bbox_filter.Execute(selected_mask)
+        bbox = np.array(bbox_filter.GetBoundingBox(1))
+        bbox_start_voxel = [bbox[0], bbox[1], bbox[2]]
+        bbox_end_voxel = [bbox_start_voxel[0] + bbox[3], bbox_start_voxel[1] + bbox[4], bbox_start_voxel[2] + bbox[5]]
+    except:
+        print('Fail to get the bounding box.')
+        bbox_start_voxel, bbox_end_voxel = None, None
 
     return bbox_start_voxel, bbox_end_voxel
