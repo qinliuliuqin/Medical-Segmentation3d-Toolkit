@@ -200,16 +200,16 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
     return mean_prob_maps
 
 
-def segmentation_volume(model, cfg, image, start_voxel, end_voxel, use_gpu):
+def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use_gpu):
     """ Segment the volume
-    :param model:           the loaded segmentation model.
-    :param image:           the image volume.
-    :param start_voxel:     the start voxel of the volume of interest (inclusive).
-    :param end_voxel:       the end voxel of the volume of interest (exclusive).
-    :param use_gpu:         whether to use gpu or not, bool type.
+    :param model:             the loaded segmentation model.
+    :param image:             the image volume.
+    :param bbox_start_voxel:  the start voxel of the bounding box (inclusive).
+    :param bbox_end_voxel:    the end voxel of the bounding box (exclusive).
+    :param use_gpu:           whether to use gpu or not, bool type.
     :return:
-      mean_prob_maps:        the mean probability maps of all classes
-      std_maps:              the standard deviation maps of all classes
+      mean_prob_maps:         the mean probability maps of all classes
+      std_maps:               the standard deviation maps of all classes
     """
     assert isinstance(image, sitk.Image)
 
@@ -231,8 +231,23 @@ def segmentation_volume(model, cfg, image, start_voxel, end_voxel, use_gpu):
     elif partition_type == 'SIZE':
         partition_size = cfg.partition_size
         max_stride = model['max_stride']
-        start_voxels, end_voxels = \
-            image_partition_by_fixed_size(iso_image, partition_size, partition_stride, max_stride)
+
+        # convert bounding box to the iso image frame
+        if bbox_start_voxel is not None and bbox_end_voxel is not None:
+            bbox_start_world = image.TransformContinuousIndexToPhysicalPoint(bbox_start_voxel)
+            bbox_start_voxel = image.TransformPhysicalPointToIndex(bbox_start_world)
+
+            bbox_end_world = image.TransformContinuousIndexToPhysicalPoint(bbox_end_voxel)
+            bbox_end_voxel = image.TransformPhysicalPointToIndex(bbox_end_world)
+            for idx in range(3):
+                bbox_start_voxel[idx] = max(0, bbox_start_voxel[idx])
+                bbox_end_voxel[idx] = min(bbox_end_voxel[idx], iso_image.GetSize()[idx])
+        else:
+            bbox_start_voxel, bbox_end_voxel = [0, 0, 0], [iso_image.GetSize()[idx] for idx in range(3)]
+
+        start_voxels, end_voxels = image_partition_by_fixed_size(
+            iso_image, bbox_start_voxel, bbox_end_voxel, partition_size, partition_stride, max_stride
+        )
 
     else:
         raise ValueError('Unsupported partition type!')
@@ -339,7 +354,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
                 models['coarse_model'], models['infer_cfg'].coarse, image, None, None, gpu_id > 0
             )
 
-            start_voxel, end_voxel = get_bounding_box(mask, 1, models['coarse_model']['out_channels'] - 1)
+            start_voxel, end_voxel = get_bounding_box(mask, None)
             mean_probs, mask = segmentation_volume(
                 models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
             )

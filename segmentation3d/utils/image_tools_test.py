@@ -1,6 +1,6 @@
 import SimpleITK as sitk
 from segmentation3d.utils.image_tools import crop_image, resample_spacing, \
-  pick_largest_connected_component
+  pick_largest_connected_component, get_bounding_box
 
 
 def test_copy_image():
@@ -75,6 +75,15 @@ def test_pick_largest_connected_component():
     sitk.WriteImage(seg_cc, seg_cc_path, True)
 
 
+def test_get_bounding_box():
+
+  seg_path = '/mnt/projects/CT_Dental/results/model_0429_2020/Pre_Post_Facial_Data-Ma_debug/n03_orginImg_post/seg.mha'
+  seg = sitk.ReadImage(seg_path)
+
+  bbox = get_bounding_box(seg, None)
+  print(bbox)
+
+
 if __name__ == '__main__':
 
   # test_copy_image()
@@ -83,4 +92,6 @@ if __name__ == '__main__':
 
   #crop_patch()
 
-  test_pick_largest_connected_component()
+  #test_pick_largest_connected_component()
+
+  test_get_bounding_box()

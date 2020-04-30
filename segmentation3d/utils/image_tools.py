@@ -160,16 +160,20 @@ def copy_image(source_image, target_start_voxel, target_end_voxel, target_image)
     return sitk.Paste(target_image, source_image, paste_size, source_start_voxel, target_start_voxel)
 
 
-def image_partition_by_fixed_size(image, partition_size, partition_stride, max_stride):
+def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
+                                  partition_size, partition_stride, max_stride):
     """
     Split image by fixed size.
 
     :param image: the input image to be spilt
+    :param bbox_start_voxel: the partition start voxel (inclusive)
+    :param bbox_end_voxel: the partition end voxel (exclusive)
     :param partition_size: the physical size of each partition
     :param partition_stride: the partition stride
     :return partition_centers: the list containing center voxel of each partition
     """
     image_size, image_spacing, image_origin = image.GetSize(), image.GetSpacing(), image.GetOrigin()
+    bbox_size = [bbox_end_voxel[idx] - bbox_start_voxel[idx] for idx in range(3)]
 
     box_size = [int(partition_size[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
     for idx in range(3):
@@ -181,16 +185,18 @@ def image_partition_by_fixed_size(image, partition_size, partition_stride, max_s
     for idx in range(3):
         stride_size[idx] = min(image_size[idx], stride_size[idx])
 
-    num_partitions = [int(np.ceil((image_size[idx] - box_size[idx]) / stride_size[idx] + 1)) for idx in range(3)]
+    num_partitions = [int(np.ceil((bbox_size[idx] - box_size[idx]) / stride_size[idx] + 1)) for idx in range(3)]
     start_voxels, end_voxels = [], []
     for idx in range(0, num_partitions[0]):
         for idy in range(0, num_partitions[1]):
             for idz in range(0, num_partitions[2]):
-                start_voxel = [idx * stride_size[0], idy * stride_size[1], idz * stride_size[2]]
+                start_voxel = [bbox_start_voxel[0] + idx * stride_size[0],
+                               bbox_start_voxel[1] + idy * stride_size[1],
+                               bbox_start_voxel[2] + idz * stride_size[2]]
                 end_voxel = [start_voxel[0] + box_size[0], start_voxel[1] + box_size[1], start_voxel[2] + box_size[2]]
                 for dim in range(3):
-                    if end_voxel[dim] > image_size[dim]:
-                        end_voxel[dim] = image_size[dim]
+                    if end_voxel[dim] > bbox_end_voxel[dim]:
+                        end_voxel[dim] = bbox_end_voxel[dim]
                         start_voxel[dim] = max(0, end_voxel[dim] - box_size[dim])
                         start_voxel[dim] += (end_voxel[dim] - start_voxel[dim]) % max_stride
                   
@@ -440,9 +446,30 @@ def get_mean_std_from_image(image):
     return np.mean(image_npy), np.std(image_npy)
 
 
-def get_bounding_box(image, threshold_min, threshold_max):
+def get_bounding_box(mask, selected_labels):
     """ Get the bounding box of the image volume in the given intensity (inclusive).
-    """
-    assert isinstance(image, sitk.Image)
 
-    return image.GetSize()
+    :param mask: multi-label mask
+    :param selected_labels: a list containing all labels to get the bounding box
+    """
+    assert isinstance(mask, sitk.Image)
+
+    mask_npy = sitk.GetArrayFromImage(mask)
+    selected_mask_npy = np.zeros_like(mask_npy)
+    if selected_labels is not None:
+        for label in selected_labels:
+            selected_mask_npy[mask_npy == label] = 1
+    else:
+        selected_mask_npy[mask_npy > 0] = 1
+
+    selected_mask = sitk.GetImageFromArray(selected_mask_npy)
+    selected_mask.CopyInformation(mask)
+
+    bbox_filter = sitk.LabelShapeStatisticsImageFilter()
+    bbox_filter.Execute(selected_mask)
+    bbox = np.array(bbox_filter.GetBoundingBox(1))
+
+    bbox_start_voxel = [bbox[0], bbox[1], bbox[2]]
+    bbox_end_voxel = [bbox_start_voxel[0] + bbox[3], bbox_start_voxel[1] + bbox[4], bbox_start_voxel[2] + bbox[5]]
+
+    return bbox_start_voxel, bbox_end_voxel
