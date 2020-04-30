@@ -200,7 +200,7 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
     return mean_prob_maps
 
 
-def segmentation_volume(model, image, cfg, start_voxel, end_voxel, use_gpu):
+def segmentation_volume(model, cfg, image, start_voxel, end_voxel, use_gpu):
     """ Segment the volume
     :param model:           the loaded segmentation model.
     :param image:           the image volume.
@@ -237,7 +237,6 @@ def segmentation_volume(model, image, cfg, start_voxel, end_voxel, use_gpu):
     else:
         raise ValueError('Unsupported partition type!')
 
-    begin = time.time()
     iso_partition_overlap_count = sitk.Image(iso_image.GetSize(), sitk.sitkFloat32)
     iso_partition_overlap_count.CopyInformation(iso_image)
     for idx in range(len(start_voxels)):
