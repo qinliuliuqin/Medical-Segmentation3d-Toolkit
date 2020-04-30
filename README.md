@@ -45,8 +45,8 @@ Do not forget the last '.' that indicates the current folder.
      --save_prob           whether to save all prob maps
 
    ```
-   The following is an example that shows how to get started.
-   If you have an image `image.mha`, a segmentation model `model`, and a gpu with devise id `0`, you can run the 
+   The following is an example that shows how to get started:
+   If you have an image `image.mha`, a segmentation model `model`, and a gpu with device id `0`, you can run the 
    following command for inference:   
    ```
    $ seg_infer -i ./image.mha -m ./model -o ./result_folder -g 0 
