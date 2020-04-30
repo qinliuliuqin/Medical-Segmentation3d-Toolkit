@@ -352,10 +352,11 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
             )
 
         elif models['infer_cfg'].general.single_scale == 'DISABLE':
+            print('Coarse segmentation: ')
             _, mask = segmentation_volume(
                 models['coarse_model'], models['infer_cfg'].coarse, image, None, None, gpu_id > 0
             )
-
+            print('Fine segmentation: ')
             start_voxel, end_voxel = get_bounding_box(mask, None)
             mean_probs, mask = segmentation_volume(
                 models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
