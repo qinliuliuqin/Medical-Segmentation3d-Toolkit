@@ -77,7 +77,7 @@ def test_pick_largest_connected_component():
 
 def test_get_bounding_box():
 
-  seg_path = '/mnt/projects/CT_Dental/results/model_0429_2020/Pre_Post_Facial_Data-Ma_debug/n03_orginImg_post/seg.mha'
+  seg_path = '/mnt/projects/CT_Dental/results/model_0429_2020/Pre_Post_Facial_Data-Ma_debug/n07_orginImg_post/seg.mha'
   seg = sitk.ReadImage(seg_path)
 
   bbox = get_bounding_box(seg, None)

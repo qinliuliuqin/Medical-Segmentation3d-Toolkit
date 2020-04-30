@@ -173,17 +173,29 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
     :return partition_centers: the list containing center voxel of each partition
     """
     image_size, image_spacing, image_origin = image.GetSize(), image.GetSpacing(), image.GetOrigin()
-    bbox_size = [bbox_end_voxel[idx] - bbox_start_voxel[idx] for idx in range(3)]
+    for idx in range(3):
+        assert image_size[idx] >= max_stride and image_size[idx] % max_stride == 0
+
+    bbox_size = [min(image_size[idx], bbox_end_voxel[idx] - bbox_start_voxel[idx]) for idx in range(3)]
+    for idx in range(3):
+        if bbox_size[idx] % max_stride != 0:
+            bbox_size[idx] = max_stride * (bbox_size[idx] // max_stride + 1)
+        bbox_size[idx] = min(bbox_size[idx], image_size[idx])
+        bbox_end_voxel[idx] = bbox_start_voxel[idx] + bbox_size[idx]
+        if bbox_end_voxel[idx] > image_size[idx]:
+            bbox_end_voxel[idx] = image_size[idx]
+            bbox_start_voxel[idx] = bbox_end_voxel[idx] - bbox_size[idx]
+        assert bbox_start_voxel[idx] >= 0
 
     box_size = [int(partition_size[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
     for idx in range(3):
         if box_size[idx] % max_stride:
             box_size[idx] = max_stride * (box_size[idx] // max_stride + 1)
-        box_size[idx] = min(image_size[idx], box_size[idx])
+        box_size[idx] = min(bbox_size[idx], box_size[idx])
 
     stride_size = [int(partition_stride[idx] / image_spacing[idx] + 0.5) for idx in range(3)]
     for idx in range(3):
-        stride_size[idx] = min(image_size[idx], stride_size[idx])
+        stride_size[idx] = min(bbox_size[idx], stride_size[idx])
 
     num_partitions = [int(np.ceil((bbox_size[idx] - box_size[idx]) / stride_size[idx] + 1)) for idx in range(3)]
     start_voxels, end_voxels = [], []
