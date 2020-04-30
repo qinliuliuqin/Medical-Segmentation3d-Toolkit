@@ -135,19 +135,19 @@ def load_models(model_folder, gpu_id=0):
     if models.infer_cfg.general.single_scale == 'coarse':
         coarse_model_folder = os.path.join(model_folder, models.infer_cfg.coarse.model_name)
         coarse_model = load_single_model(coarse_model_folder, gpu_id)
-        models.coarse = coarse_model
-        models.fine = None
+        models.coarse_model = coarse_model
+        models.fine_model = None
 
     elif models.infer_cfg.general.single_scale == 'fine':
         fine_model_folder = os.path.join(model_folder, models.infer_cfg.fine.model_name)
         fine_model = load_single_model(fine_model_folder, gpu_id)
         models.fine_model = fine_model
-        models.coarse = None
+        models.coarse_model = None
 
     elif models.infer_cfg.general.single_scale == 'DISABLE':
         coarse_model_folder = os.path.join(model_folder, models.infer_cfg.coarse.model_name)
         coarse_model = load_single_model(coarse_model_folder, gpu_id)
-        models.coarse = coarse_model
+        models.coarse_model = coarse_model
 
         fine_model_folder = os.path.join(model_folder, models.infer_cfg.fine.model_name)
         fine_model = load_single_model(fine_model_folder, gpu_id)
