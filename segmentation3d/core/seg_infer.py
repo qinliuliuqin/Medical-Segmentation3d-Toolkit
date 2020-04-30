@@ -316,10 +316,14 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         begin = time.time()
         start_voxel, end_voxel = [0, 0, 0], [image.GetSize()[idx] - 1 for idx in range(3)]
         if models['coarse_model'] is not None:
-            _, mask = segmentation_volume(models['coarse_model'], image, None, None, gpu_id > 0)
+            _, mask = segmentation_volume(
+                models['coarse_model'], models['infer_cfg'].coarse, image, None, None, gpu_id > 0
+            )
             start_voxel, end_voxel = get_bounding_box(mask, 1, models['coarse_model']['out_channels'] - 1)
 
-        mean_probs, mask = segmentation_volume(models['fine_model'], image, start_voxel, end_voxel, gpu_id > 0)
+        mean_probs, mask = segmentation_volume(
+            models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
+        )
         inference_time = time.time() - begin
 
         # save results
