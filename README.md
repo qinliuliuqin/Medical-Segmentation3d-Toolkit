@@ -46,21 +46,19 @@ Do not forget the last '.' that indicates the current folder.
 
    ```
    The following is an example that shows how to get started.
-   If you have an image `image.mha`, a segmentation model `model`, and a gpu whose devise id is `0`, the inference 
-   command is: 
-   
+   If you have an image `image.mha`, a segmentation model `model`, and a gpu with devise id `0`, you can run the 
+   following command for inference:   
    ```
    $ seg_infer -i ./image.mha -m ./model -o ./result_folder -g 0 
    ```
-   WARNING: If you run `$ seg_infer` with no parameters, it may crash because it will look for the default path
-   which is set to my environment. 
+   WARNING: If you run `$ seg_infer` with no parameters, the program may crash because it will look for the default paths
+   which are set according to my environment. 
    
    If you are working on dental project and you want to segment bony structures from CBCT/CT images, you can 
-   download pretrained segmentation models here: 
+   download pretrained segmentation models on github (the latest model is `model_0429_2020`).
    ```
    $ git clone https://github.com/qinliuliuqin/Model-Zoo/tree/master/Dental/segmentation  
    ```
-   The latest model is `model_0429_2020`.
 
 
 2. Training:
