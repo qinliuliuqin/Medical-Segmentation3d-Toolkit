@@ -176,6 +176,8 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
     for idx in range(3):
         assert image_size[idx] >= max_stride and image_size[idx] % max_stride == 0
 
+    print('bbox start voxel', bbox_start_voxel, 'bbox end voxel', bbox_end_voxel)
+
     bbox_size = [min(image_size[idx], bbox_end_voxel[idx] - bbox_start_voxel[idx]) for idx in range(3)]
     for idx in range(3):
         if bbox_size[idx] % max_stride != 0:
@@ -217,6 +219,7 @@ def image_partition_by_fixed_size(image, bbox_start_voxel, bbox_end_voxel,
                 start_voxels.append(start_voxel)
                 end_voxels.append(end_voxel)
     # debug only
+    print('bbox start voxel', bbox_start_voxel, 'bbox end voxel', bbox_end_voxel)
     print(start_voxels, end_voxels)
 
     return start_voxels, end_voxels
