@@ -8,8 +8,12 @@ cfg = __C
 ##################################
 __C.general = {}
 
-# Enable coarse model
-__C.general.enable_coarse = False
+# Run segmentation in single scale mode
+# Options:
+# 1) coarse: only run the coarse segmentation model
+# 2) fine: only run the fine segmentation model
+# 3) DISABLE: run the coarse model first and then run the fine model
+__C.general.single_scale = 'DISABLE'
 
 ##################################
 # Coarse model parameters

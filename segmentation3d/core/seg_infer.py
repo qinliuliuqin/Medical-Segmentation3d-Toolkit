@@ -311,18 +311,30 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         image = sitk.ReadImage(file_path, sitk.sitkFloat32)
         read_image_time = time.time() - begin
 
-        # coarse segmentation
         begin = time.time()
-        start_voxel, end_voxel = [0, 0, 0], [image.GetSize()[idx] - 1 for idx in range(3)]
-        if models['coarse_model'] is not None:
+        if models['infer_cfg'].general.single_scale == 'coarse':
+            mean_probs, mask = segmentation_volume(
+                models['coarse_model'], models['infer_cfg'].coarse, image, None, None, gpu_id > 0
+            )
+
+        elif models['infer_cfg'].general.single_scale == 'fine':
+            mean_probs, mask = segmentation_volume(
+                models['fine_model'], models['infer_cfg'].fine, image, None, None, gpu_id > 0
+            )
+
+        elif models['infer_cfg'].general.single_scale == 'DISABLE':
             _, mask = segmentation_volume(
                 models['coarse_model'], models['infer_cfg'].coarse, image, None, None, gpu_id > 0
             )
-            start_voxel, end_voxel = get_bounding_box(mask, 1, models['coarse_model']['out_channels'] - 1)
 
-        mean_probs, mask = segmentation_volume(
-            models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
-        )
+            start_voxel, end_voxel = get_bounding_box(mask, 1, models['coarse_model']['out_channels'] - 1)
+            mean_probs, mask = segmentation_volume(
+                models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
+            )
+
+        else:
+            raise ValueError('Unsupported scale type!')
+
         inference_time = time.time() - begin
 
         # save results

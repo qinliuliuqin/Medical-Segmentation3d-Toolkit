@@ -16,10 +16,13 @@ __C.general = {}
 __C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0305_2020/model1_groupnorm_0.4_contrast'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0430_2020'
+
+# the model scale
+__C.general.model_scale = 'fine'
 
 # continue training from certain epoch, -1 to train from scratch
-__C.general.resume_epoch = 900
+__C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
 __C.general.num_gpus = 3
