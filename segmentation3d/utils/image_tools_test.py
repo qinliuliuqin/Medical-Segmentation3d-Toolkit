@@ -1,5 +1,5 @@
 import SimpleITK as sitk
-from segmentation3d.dataloader.image_tools import copy_image, crop_image, resample_spacing, \
+from segmentation3d.utils.image_tools import crop_image, resample_spacing, \
   pick_largest_connected_component
 
 

@@ -10,11 +10,11 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
 from segmentation3d.dataloader.dataset import SegmentationDataset
-from segmentation3d.dataloader.image_tools import save_intermediate_results
 from segmentation3d.dataloader.sampler import EpochConcateSampler
 from segmentation3d.loss.focal_loss import FocalLoss
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
 from segmentation3d.utils.file_io import load_config, setup_logger
+from segmentation3d.utils.image_tools import save_intermediate_results
 from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint
 
 

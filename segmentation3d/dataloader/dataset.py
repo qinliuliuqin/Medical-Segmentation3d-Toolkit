@@ -4,7 +4,7 @@ import SimpleITK as sitk
 from torch.utils.data import Dataset
 
 from segmentation3d.utils.file_io import readlines
-from segmentation3d.dataloader.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
+from segmentation3d.utils.image_tools import select_random_voxels_in_multi_class_mask, crop_image, \
     convert_image_to_tensor, get_image_frame
 
 

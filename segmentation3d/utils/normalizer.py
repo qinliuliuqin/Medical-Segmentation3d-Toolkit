@@ -1,6 +1,6 @@
 import SimpleITK as sitk
 
-from segmentation3d.dataloader.image_tools import normalize_image, get_mean_std_from_image
+from segmentation3d.utils.image_tools import normalize_image, get_mean_std_from_image
 
 
 class FixedNormalizer(object):

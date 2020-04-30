@@ -438,3 +438,11 @@ def get_mean_std_from_image(image):
 
     image_npy = sitk.GetArrayFromImage(image)
     return np.mean(image_npy), np.std(image_npy)
+
+
+def get_bounding_box(image, threshold_min, threshold_max):
+    """ Get the bounding box of the image volume in the given intensity (inclusive).
+    """
+    assert isinstance(image, sitk.Image)
+
+    return image.GetSize()
