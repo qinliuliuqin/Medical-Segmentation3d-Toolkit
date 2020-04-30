@@ -15,6 +15,7 @@ Do not forget the last '.' that indicates the current folder.
 
 1. Inference:
    Print the help info.
+   
    Input:
    ```
    $ seg_infer --help
