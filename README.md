@@ -1,6 +1,6 @@
 # Introduction
 
-3D Medical Image Segmentation Engine.
+Medical Image Segmentation Engine.
 
 # Installation
 This codebase is only tested on Linux (Ubuntu).
