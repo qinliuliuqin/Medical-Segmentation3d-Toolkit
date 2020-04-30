@@ -45,16 +45,18 @@ Do not forget the last '.' that indicates the current folder.
      --save_prob           whether to save all prob maps
 
    ```
-   For example, if you have an image `image.mha` and a segmentation model `model`, you can 
-   run the following code for inference on gpu `0`. You can ignore the rest parameters. 
+   The following is an example that shows how to get started.
+   If you have an image `image.mha`, a segmentation model `model`, and a gpu whose devise id is `0`, the inference 
+   command is: 
+   
    ```
    $ seg_infer -i ./image.mha -m ./model -o ./result_folder -g 0 
    ```
    WARNING: If you run `$ seg_infer` with no parameters, it may crash because it will look for the default path
-   which is set to my environment.
-
-   If you are working on bony structure segmentation from CBCT/CT images, you can download pretrained segmentation 
-   models: 
+   which is set to my environment. 
+   
+   If you are working on dental project and you want to segment bony structures from CBCT/CT images, you can 
+   download pretrained segmentation models here: 
    ```
    $ git clone https://github.com/qinliuliuqin/Model-Zoo/tree/master/Dental/segmentation  
    ```
