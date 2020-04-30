@@ -49,11 +49,16 @@ Do not forget the last '.' that indicates the current folder.
    ```
    $ seg_infer -i ./image.mha -m ./model -o ./result_folder -g 0 
    ```
-   WARNNING: If you run `$ seg_infer` with no parameters, it may crash because it will look for the default path
+   WARNING: If you run `$ seg_infer` with no parameters, it may crash because it will look for the default path
    which is set to my environment.
 
-   You can download pretrained segmentation models on github: 
-   `https://github.com/qinliuliuqin/Model-Zoo/tree/master/Dental/segmentation`   
+   If you are working on bony structure segmentation from CBCT/CT images, you can download pretrained segmentation 
+   models: 
+   ```
+   $ git clone https://github.com/qinliuliuqin/Model-Zoo/tree/master/Dental/segmentation  
+   ```
+   The latest model is `model_0429_2020`.
+
 
 2. Training:
 
