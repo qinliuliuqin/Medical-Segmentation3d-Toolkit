@@ -112,7 +112,6 @@ def load_single_model(model_folder, gpu_id=0):
             state_dict = state_dict_cpu
 
         net.load_state_dict(state_dict)
-        net.load_state_dict()
         net.eval()
 
     model.net = net
