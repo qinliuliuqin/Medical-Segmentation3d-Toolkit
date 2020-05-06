@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import glob
 import importlib
 import torch.nn as nn
@@ -95,7 +96,24 @@ def load_single_model(model_folder, gpu_id=0):
         state = torch.load(chk_file, map_location='cpu')
         net_module = importlib.import_module('segmentation3d.network.' + state['net'])
         net = net_module.SegmentationNet(state['in_channels'], state['out_channels'])
-        net.load_state_dict(state['state_dict'])
+
+        # temp use
+        state_dict = state['state_dict']
+        is_trained_on_cpu = True
+        for k, _ in state_dict.items():
+            if 'module' in k:
+                is_trained_on_cpu = False
+                break
+
+        if not is_trained_on_cpu:
+            state_dict_cpu = OrderedDict()
+            for k, v in state_dict.items():
+                name = k[7:]
+                state_dict_cpu[name] = v
+            state_dict = state_dict_cpu
+
+        net.load_state_dict(state_dict)
+        net.load_state_dict()
         net.eval()
 
     model.net = net
