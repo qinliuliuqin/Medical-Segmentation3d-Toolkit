@@ -51,7 +51,7 @@ Do not forget the last '.' that indicates the current folder.
    ```
    $ seg_infer -i ./image.mha -m ./model -o ./result_folder -g 0 
    ```
-   For inference using CPU, just set `-g` to `-1`. 
+   For inference using CPU, just set gpu id to `-1`. 
    This package supports different input image types, including `.nii.gz`, `.mhd`, `.mha`, and `DCIOM` folder.
    For the `DICOM` folder, all `.dcm` files should in this folder.
 
