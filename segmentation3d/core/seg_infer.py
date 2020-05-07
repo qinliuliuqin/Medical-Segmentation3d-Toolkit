@@ -229,7 +229,12 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
     """
     assert isinstance(image, sitk.Image)
 
-    iso_image = resample_spacing(image, model['spacing'], model['max_stride'], model['interpolation'])
+    model_spacing = model['spacing']
+    if not use_gpu:
+        for idx in range(3):
+            model_spacing[idx] = model_spacing[idx] * cfg.cpu_model_spacing_increase_ratio
+
+    iso_image = resample_spacing(image, model_spacing, model['max_stride'], model['interpolation'])
 
     num_classes = model['out_channels']
     iso_mean_probs = []
@@ -239,13 +244,18 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
         iso_mean_probs.append(iso_mean_prob)
 
     partition_type = cfg.partition_type
-    partition_stride = cfg.partition_stride
     if partition_type == 'DISABLE':
         start_voxels = [[0, 0, 0]]
         end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
 
     elif partition_type == 'SIZE':
+        partition_stride = cfg.partition_stride
         partition_size = cfg.partition_size
+        if not use_gpu:
+            for idx in range(3):
+                partition_size[idx] = partition_size[idx] * cfg.cpu_partition_decrease_ratio
+                partition_stride[idx] = partition_stride[idx] * cfg.cpu_partition_decrease_ratio
+
         max_stride = model['max_stride']
 
         # convert bounding box to the iso image frame

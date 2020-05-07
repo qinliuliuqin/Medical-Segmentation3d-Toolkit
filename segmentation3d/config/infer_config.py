@@ -51,6 +51,18 @@ __C.coarse.partition_size = [51.2, 51.2, 51.2]
 # different partition window.
 __C.coarse.partition_stride = [51.2, 51.2, 51.2]
 
+# ignore this parameter if you are using gpu for inference.
+# otherwise, set it larger than 1.0 so as to decrease the model resolution.
+# for example, if the model spacing is 0.4, then the real model spacing for inference using cpu is
+# 0.4 * cpu_model_spacing_increase_ratio.
+__C.coarse.cpu_model_spacing_increase_ratio = 1.0
+
+# ignore this parameter if you are using gpu for inference.
+# otherwise, set it smaller than 1.0 so as to decrease the partition size and partition stride.
+# for example, if the partition size and partition stride are all set to [89.6, 89.6, 89.6],
+# then the real partition size and stride will be [89.6, 89.6, 89.6] * cpu_partition_decrease_ratio.
+__C.coarse.cpu_partition_decrease_ratio = 1.0
+
 ##################################
 # Fine model parameters
 ##################################
@@ -80,10 +92,22 @@ __C.fine.partition_type = 'SIZE'
 
 # if partition type = 'SIZE', set the partition size (unit: mm).
 # it is recommended to set this value as the same with the physical cropping size in the training phase
-__C.fine.partition_size = [51.2, 51.2, 51.2]
+__C.fine.partition_size = [89.6, 89.6, 89.6]
 
 # the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
 # between the partition windows. Otherwise, the value of the overlapped area will be averaged.
 # it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
 # different partition window.
-__C.fine.partition_stride = [51.2, 51.2, 51.2]
+__C.fine.partition_stride = [89.6, 89.6, 89.6]
+
+# ignore this parameter if you are using gpu for inference.
+# otherwise, set it larger than 1.0 so as to decrease the model resolution.
+# for example, if the model spacing is 0.4, then the real model spacing for inference using cpu is
+# 0.4 * cpu_model_spacing_increase_ratio.
+__C.fine.cpu_model_spacing_increase_ratio = 1.2
+
+# ignore this parameter if you are using gpu for inference.
+# otherwise, set it smaller than 1.0 so as to decrease the partition size and partition stride.
+# for example, if the partition size and partition stride are all set to [89.6, 89.6, 89.6],
+# then the real partition size and stride will be [89.6, 89.6, 89.6] * cpu_partition_decrease_ratio.
+__C.fine.cpu_partition_decrease_ratio = 51.2 / 89.6
