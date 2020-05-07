@@ -10,6 +10,7 @@ import torch
 import numpy as np
 from easydict import EasyDict as edict
 
+from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_series
 from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.utils.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
@@ -43,26 +44,33 @@ def read_test_txt(txt_file):
     return file_name_list, file_path_list
 
 
-def read_test_folder(folder_path):
+def read_test_folder(folder_path, is_dicom_folder):
     """ read single-modality input folder
     :param folder_path: image file folder path
+    :param is_dicom_folder: whether it is a dicom folder
     :return: a list of image path list, list of image case names
     """
-    suffix = ['.mhd', '.nii', '.hdr', '.nii.gz', '.mha', '.image3d']
-    file = []
-    for suf in suffix:
-        file += glob.glob(os.path.join(folder_path, '*' + suf))
+    if is_dicom_folder:
+        _, im_name = os.path.split(folder_path)
+        file_name_list = [im_name]
+        file_path_list = [folder_path]
 
-    file_name_list, file_path_list = [], []
-    for im_pth in sorted(file):
-        _, im_name = os.path.split(im_pth)
+    else:
+        suffix = ['.mhd', '.nii', '.hdr', '.nii.gz', '.mha', '.image3d']
+        file = []
         for suf in suffix:
-            idx = im_name.find(suf)
-            if idx != -1:
-                im_name = im_name[:idx]
-                break
-        file_name_list.append(im_name)
-        file_path_list.append(im_pth)
+            file += glob.glob(os.path.join(folder_path, '*' + suf))
+
+        file_name_list, file_path_list = [], []
+        for im_pth in sorted(file):
+            _, im_name = os.path.split(im_pth)
+            for suf in suffix:
+                idx = im_name.find(suf)
+                if idx != -1:
+                    im_name = im_name[:idx]
+                    break
+            file_name_list.append(im_name)
+            file_path_list.append(im_pth)
 
     return file_name_list, file_path_list
 
@@ -337,6 +345,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
     load_model_time = time.time() - begin
 
     # load test images
+    is_dicom_folder = False
     if os.path.isfile(input_path):
         if input_path.endswith('.txt'):
             file_name_list, file_path_list = read_test_txt(input_path)
@@ -351,7 +360,14 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
                 raise ValueError('Unsupported input path.')
 
     elif os.path.isdir(input_path):
-        file_name_list, file_path_list = read_test_folder(input_path)
+        # test if it is a DICOM folder
+        file_names = glob.glob(os.path.join(input_path, '*.dcm'))
+        if len(file_names) > 0:
+            is_dicom_folder = True
+
+        file_name_list, file_path_list = read_test_folder(input_path, is_dicom_folder)
+        if len(file_name_list) == 0:
+            raise ValueError('Empty test folder!')
 
     else:
         raise ValueError('Unsupported input path.')
@@ -364,7 +380,10 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
         # load image
         begin = time.time()
-        image = sitk.ReadImage(file_path, sitk.sitkFloat32)
+        if is_dicom_folder:
+            image = read_dicom_series(file_path)
+        else:
+            image = sitk.ReadImage(file_path, sitk.sitkFloat32)
         read_image_time = time.time() - begin
 
         begin = time.time()
@@ -400,11 +419,17 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         if not os.path.isdir(os.path.join(output_folder, case_name)):
             os.makedirs(os.path.join(output_folder, case_name))
 
-        sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
+        # save mask
+        if is_dicom_folder:
+            write_dicom_series(mask, os.path.join(output_folder, case_name))
+        else:
+            sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
 
+        # save original image
         if save_image:
             sitk.WriteImage(image, os.path.join(output_folder, case_name, 'org.mha'), True)
 
+        # save segmentation probability map
         if save_prob:
             num_classes = models['fine_model']['out_channels']
             for idx in range(num_classes):

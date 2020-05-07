@@ -7,17 +7,17 @@ from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_ser
 
 def test_save_dicom_series():
   # read mha image
-  seg_path = '/home/qinliu/debug/seg.mha'
+  seg_path = '/mnt/projects/CT_Dental/Pre_Post_Facial_Data-Ma/original_images/n03_orginImg_post.nii.gz'
   seg = sitk.ReadImage(seg_path, sitk.sitkInt16)
 
   # save mha to dicom series
   tags = dicom_tags_dict()
-  dicom_save_folder = '/home/qinliu/debug/seg_dicom'
+  dicom_save_folder = '/mnt/projects/CT_Dental/Pre_Post_Facial_Data-Ma/original_images_dicom_test/n03_orginImg_post'
   write_dicom_series(seg, dicom_save_folder, tags=tags)
 
   # load the saved dicom series
   seg_reload = read_dicom_series(dicom_save_folder)
-  seg_reload_path = '/home/qinliu/debug/seg_reload.mha'
+  seg_reload_path = '/mnt/projects/CT_Dental/Pre_Post_Facial_Data-Ma/original_images_dicom_test/n03_orginImg_post.nii.gz'
   sitk.WriteImage(seg_reload, seg_reload_path)
 
   # compare the original image and the reloaded image
@@ -80,6 +80,6 @@ if __name__ == '__main__':
 
   test_save_dicom_series()
 
-  test_save_binary_dicom_series()
-
-  test_merge_mask()
+  # test_save_binary_dicom_series()
+  #
+  # test_merge_mask()
