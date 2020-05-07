@@ -51,10 +51,14 @@ Do not forget the last '.' that indicates the current folder.
    ```
    $ seg_infer -i ./image.mha -m ./model -o ./result_folder -g 0 
    ```
-   WARNING: If you run `$ seg_infer` with no parameters, the program may crash because it will look for the default paths
+   For inference using CPU, just set gpu id to `-1`. 
+   This package supports different input image types, including `.nii.gz`, `.mhd`, `.mha`, and `DCIOM` folder.
+   For the `DICOM` folder, all `.dcm` files should in this folder.
+
+   WARNING: If you run `$ seg_infer` with no parameters, the program will crash because it will look for the default paths
    which are set according to my environment. 
    
-   Specifically, if you are working on dental project and you want to segment bony structures from CBCT/CT images, you can 
+   Specifically, if you are working on dental project and if want to segment bony structures from CBCT/CT images, you can 
    download pretrained segmentation models on github (the latest model is `model_0429_2020`).
    ```
    $ git clone https://github.com/qinliuliuqin/Model-Zoo.git  
