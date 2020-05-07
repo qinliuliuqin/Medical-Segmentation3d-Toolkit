@@ -382,6 +382,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         begin = time.time()
         if is_dicom_folder:
             image = read_dicom_series(file_path)
+            image = sitk.Cast(image, sitk.sitkFloat32)
         else:
             image = sitk.ReadImage(file_path, sitk.sitkFloat32)
         read_image_time = time.time() - begin
