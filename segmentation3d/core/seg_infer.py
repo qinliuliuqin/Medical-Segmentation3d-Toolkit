@@ -10,7 +10,7 @@ import torch
 import numpy as np
 from easydict import EasyDict as edict
 
-from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_series
+from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_series, dicom_tags_dict
 from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.utils.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
@@ -421,7 +421,8 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
         # save mask
         if is_dicom_folder:
-            write_dicom_series(mask, os.path.join(output_folder, case_name))
+            dicom_tags = dicom_tags_dict()
+            write_dicom_series(mask, os.path.join(output_folder, case_name), tags=dicom_tags)
         else:
             sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
 
