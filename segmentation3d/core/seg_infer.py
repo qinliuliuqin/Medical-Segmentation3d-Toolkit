@@ -1,4 +1,5 @@
 from collections import OrderedDict
+import copy
 import glob
 import importlib
 import torch.nn as nn
@@ -229,7 +230,7 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
     """
     assert isinstance(image, sitk.Image)
 
-    model_spacing = model['spacing']
+    model_spacing = copy.deepcopy(model['spacing'])
     if not use_gpu:
         for idx in range(3):
             model_spacing[idx] = model_spacing[idx] * cfg.cpu_model_spacing_increase_ratio
@@ -249,8 +250,8 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
         end_voxels = [[int(iso_image.GetSize()[idx]) for idx in range(3)]]
 
     elif partition_type == 'SIZE':
-        partition_stride = cfg.partition_stride
-        partition_size = cfg.partition_size
+        partition_stride = copy.deepcopy(cfg.partition_stride)
+        partition_size = copy.deepcopy(cfg.partition_size)
         if not use_gpu:
             for idx in range(3):
                 partition_size[idx] = partition_size[idx] * cfg.cpu_partition_decrease_ratio
