@@ -107,7 +107,7 @@ def load_single_model(model_folder, gpu_id=0):
         if not is_trained_on_cpu:
             state_dict_cpu = OrderedDict()
             for k, v in state_dict.items():
-                name = k[7:]
+                name = k[7:]  # remove the string `module.`
                 state_dict_cpu[name] = v
             state_dict = state_dict_cpu
 
@@ -207,7 +207,7 @@ def segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu):
     assert num_classes == mean_probs.shape[1]
 
     # return the average probability map
-    mean_prob_maps, std_maps = [], []
+    mean_prob_maps = []
     for idx in range(num_classes):
         mean_prob = convert_tensor_to_image(mean_probs[0][idx].data, dtype=np.float)
         mean_prob.CopyInformation(roi_image)
