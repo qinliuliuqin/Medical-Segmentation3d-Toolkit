@@ -328,12 +328,14 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
     return mean_probs, mask
 
 
-def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save_image, save_prob):
+def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, return_mask, save_mask, save_image, save_prob):
     """ volumetric image segmentation engine
     :param input_path:          The path of text file, a single image file or a root dir with all image files
     :param model_folder:        The path of trained model
     :param output_folder:       The path of out folder
     :param gpu_id:              Which gpu to use, by default, 0
+    :param return_mask:         Whether to return mask
+    :param save_mask:           Whether to save mask
     :param save_image:          Whether to save original image
     :param save_prob:           Whether to save all probability maps
     :return: None
@@ -371,6 +373,8 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
     else:
         raise ValueError('Unsupported input path.')
+
+    masks = []
 
     # test each case
     num_success_case = 0
@@ -414,18 +418,23 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
 
         inference_time = time.time() - begin
 
+        if return_mask:
+            masks.append(mask)
+
         # save results
         begin = time.time()
         case_name = file_name_list[i]
-        if not os.path.isdir(os.path.join(output_folder, case_name)):
-            os.makedirs(os.path.join(output_folder, case_name))
+        if save_mask or save_image or save_prob:
+            if not os.path.isdir(os.path.join(output_folder, case_name)):
+                os.makedirs(os.path.join(output_folder, case_name))
 
         # save mask
-        if is_dicom_folder:
-            dicom_tags = dicom_tags_dict()
-            write_dicom_series(mask, os.path.join(output_folder, case_name), tags=dicom_tags)
-        else:
-            sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
+        if save_mask:
+            if is_dicom_folder:
+                dicom_tags = dicom_tags_dict()
+                write_dicom_series(mask, os.path.join(output_folder, case_name), tags=dicom_tags)
+            else:
+                sitk.WriteImage(mask, os.path.join(output_folder, case_name, seg_name), True)
 
         # save original image
         if save_image:
@@ -437,6 +446,7 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
             for idx in range(num_classes):
                 mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(idx))
                 sitk.WriteImage(mean_probs[idx], mean_prob_save_path, True)
+
         save_time = time.time() - begin
 
         total_test_time = load_model_time + read_image_time + inference_time + save_time
@@ -446,3 +456,5 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, save
         print('total test time: {:.2f}, average inference time: {:.2f}'.format(
             total_test_time, total_inference_time / num_success_case)
         )
+
+    return masks
