@@ -28,7 +28,9 @@ def main():
     parser.add_argument('--save_prob', help='whether to save all prob maps', action="store_true")
 
     args = parser.parse_args()
-    segmentation(args.input, args.model, args.output, args.seg_name, args.gpu_id, args.save_image, args.save_prob)
+    segmentation(
+        args.input, args.model, args.output, args.seg_name, args.gpu_id, False, True, args.save_image, args.save_prob
+    )
 
 
 if __name__ == '__main__':
