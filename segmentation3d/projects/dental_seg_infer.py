@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from segmentation3d.core.seg_infer import segmentation
@@ -19,3 +20,21 @@ def dental_segmentation(input_dicom_folder, model_folder, save_dicom_folder, gpu
     mask_name = os.path.split(input_dicom_folder)[-1]
     write_binary_dicom_series(mask[0], os.path.join(save_dicom_folder, '{}_mandible'.format(mask_name)), 1, 100)
     write_binary_dicom_series(mask[0], os.path.join(save_dicom_folder, '{}_midface'.format(mask_name)), 2, 100)
+
+
+def main():
+
+    long_description = 'Inference interface for dental segmentation.'
+
+    parser = argparse.ArgumentParser(description=long_description)
+    parser.add_argument('-i', '--input', help='input dicom folder')
+    parser.add_argument('-m', '--model', help='model folder')
+    parser.add_argument('-o', '--output', help='output dicom folder to save binary masks.')
+    parser.add_argument('-g', '--gpu_id', type=int, help='the gpu id to run model, set to -1 if using cpu only.')
+
+    args = parser.parse_args()
+    dental_segmentation(args.input, args.model, args.output, args.gpu_id)
+
+
+if __name__ == '__main__':
+    main()

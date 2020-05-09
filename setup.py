@@ -20,6 +20,7 @@ setup(name='segmentation3d',
         'console_scripts':
             ['seg_train=segmentation3d.seg_train:main',
              'seg_infer=segmentation3d.seg_infer:main',
-             'seg_eval=segmentation3d.seg_eval:main']
+             'seg_eval=segmentation3d.seg_eval:main',
+             'dental_seg_infer=segmentation3d.projects.dental_seg_infer:main']
     }
 )
