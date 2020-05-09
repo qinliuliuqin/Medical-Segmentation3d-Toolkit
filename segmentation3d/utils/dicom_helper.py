@@ -110,9 +110,11 @@ def write_binary_dicom_series(image, directory, in_label=1, out_label=100, dtype
     image_slice = castFilter.Execute(image_slice)
 
     # Tags shared by the series.
-    if tags is not None:
-      for key in tags.keys():
-        image_slice.SetMetaData(key, tags[key])
+    if tags is None:
+      tags = dicom_tags_dict()
+
+    for key in tags.keys():
+      image_slice.SetMetaData(key, tags[key])
 
     direction = binary_image.GetDirection()
     internal_tags = {"0008|0031": time.strftime("%H%M%S"), # modification time,
