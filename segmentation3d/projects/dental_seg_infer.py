@@ -18,8 +18,8 @@ def dental_segmentation(input_dicom_folder, model_folder, save_dicom_folder, gpu
 
     mask = segmentation(input_dicom_folder, model_folder, '', '', gpu_id, True, False, False, False)
     mask_name = os.path.split(input_dicom_folder)[-1]
-    write_binary_dicom_series(mask[0], os.path.join(save_dicom_folder, '{}_mandible'.format(mask_name)), 1, 100)
-    write_binary_dicom_series(mask[0], os.path.join(save_dicom_folder, '{}_midface'.format(mask_name)), 2, 100)
+    write_binary_dicom_series(mask[0], os.path.join(save_dicom_folder, '{}_midface'.format(mask_name)), 1, 100)
+    write_binary_dicom_series(mask[0], os.path.join(save_dicom_folder, '{}_mandible'.format(mask_name)), 2, 100)
 
 
 def main():
