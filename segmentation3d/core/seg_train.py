@@ -39,7 +39,7 @@ def train(train_config_file):
 
     # copy training and inference config files to the model folder
     shutil.copy(train_config_file, os.path.join(model_folder, 'train_config.py'))
-    infer_config_file = os.path.join(os.path.join(os.path.dirname(__file__), 'config', 'infer_config.py'))
+    infer_config_file = os.path.join(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', 'infer_config.py'))
     shutil.copy(infer_config_file, os.path.join(train_cfg.general.save_dir, 'infer_config.py'))
 
     # enable logging
