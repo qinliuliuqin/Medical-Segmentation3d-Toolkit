@@ -124,10 +124,10 @@ class SegmentationDataset(Dataset):
         # image IO
         images = []
         for image_path in image_paths:
-            image = sitk.ReadImage(image_path)
+            image = sitk.ReadImage(image_path, sitk.sitkFloat32)
             images.append(image)
 
-        seg = sitk.ReadImage(seg_path)
+        seg = sitk.ReadImage(seg_path, sitk.sitkFloat32)
 
         # sampling a crop center
         if self.sampling_method == 'CENTER':
