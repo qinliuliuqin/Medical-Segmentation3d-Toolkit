@@ -67,12 +67,10 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, max_stride, num_modalit
     :param num_modality: the number of image modalities
     :return: None
     """
-    chk_folder = os.path.join(cfg.general.save_dir, 'checkpoints', 'chk_{}'.format(epoch_idx))
+    model_folder = os.path.join(cfg.general.save_dir, cfg.general.model_scale)
+    chk_folder = os.path.join(model_folder, 'checkpoints', 'chk_{}'.format(epoch_idx))
     if not os.path.isdir(chk_folder):
         os.makedirs(chk_folder)
-
-    filename = os.path.join(chk_folder, 'params.pth')
-    opt_filename = os.path.join(chk_folder, 'optimizer.pth')
 
     state = {'epoch':             epoch_idx,
              'batch':             batch_idx,
@@ -87,11 +85,10 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, max_stride, num_modalit
              'crop_normalizers':  [normalizer.to_dict() for normalizer in cfg.dataset.crop_normalizers]}
 
     # save python check point
-    torch.save(state, filename)
-
-    # save python optimizer state
-    torch.save(opt.state_dict(), opt_filename)
+    parm_filename = os.path.join(chk_folder, 'params.pth')
+    optm_filename = os.path.join(chk_folder, 'optimizer.pth')
+    torch.save(state, parm_filename)
+    torch.save(opt.state_dict(), optm_filename)
 
     # save training configuration files
-    model_folder = os.path.join(cfg.general.save_dir, cfg.general.model_scale)
     shutil.copy(os.path.join(model_folder, 'train_config.py'), os.path.join(chk_folder, 'train_config.py'))
