@@ -43,7 +43,7 @@ def train(train_config_file):
     shutil.copy(infer_config_file, os.path.join(train_cfg.general.save_dir, 'infer_config.py'))
 
     # enable logging
-    log_file = os.path.join(train_cfg.general.save_dir, 'train_log.txt')
+    log_file = os.path.join(model_folder, 'train_log.txt')
     logger = setup_logger(log_file, 'seg3d')
 
     # control randomness during training
