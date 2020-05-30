@@ -104,10 +104,10 @@ __C.fine.partition_stride = [89.6, 89.6, 89.6]
 # otherwise, set it larger than 1.0 so as to decrease the model resolution.
 # for example, if the model spacing is 0.4, then the real model spacing for inference using cpu is
 # 0.4 * cpu_model_spacing_increase_ratio.
-__C.fine.cpu_model_spacing_increase_ratio = 1.2
+__C.fine.cpu_model_spacing_increase_ratio = 1.0
 
 # ignore this parameter if you are using gpu for inference.
 # otherwise, set it smaller than 1.0 so as to decrease the partition size and partition stride.
 # for example, if the partition size and partition stride are all set to [89.6, 89.6, 89.6],
 # then the real partition size and stride will be [89.6, 89.6, 89.6] * cpu_partition_decrease_ratio.
-__C.fine.cpu_partition_decrease_ratio = 51.2 / 89.6
+__C.fine.cpu_partition_decrease_ratio = 1.0

@@ -95,9 +95,6 @@ __C.net = {}
 # the network name
 __C.net.name = 'vbnet'
 
-# enable uncertainty by trun on drop out layers in the segmentation net
-__C.net.dropout_turn_on = False
-
 ##################################
 # training parameters
 ##################################
