@@ -361,18 +361,19 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
             else:
                 raise ValueError('Unsupported input path.')
 
-    elif os.path.isdir(input_path):
-        # test if it is a DICOM folder
-        file_names = glob.glob(os.path.join(input_path, '*.dcm'))
-        if len(file_names) > 0:
-            is_dicom_folder = True
-
-        file_name_list, file_path_list = read_test_folder(input_path, is_dicom_folder)
-        if len(file_name_list) == 0:
-            raise ValueError('Empty test folder!')
-
     else:
-        raise ValueError('Unsupported input path.')
+        if os.path.isdir(input_path):
+            # test if it is a DICOM folder
+            file_names = glob.glob(os.path.join(input_path, '*.dcm'))
+            if len(file_names) > 0:
+                is_dicom_folder = True
+
+            file_name_list, file_path_list = read_test_folder(input_path, is_dicom_folder)
+            if len(file_name_list) == 0:
+                raise ValueError('Empty test folder!')
+
+        else:
+            raise ValueError('The file {} does not exist.'.format(input_path))
 
     masks = []
 
