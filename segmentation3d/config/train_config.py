@@ -13,10 +13,10 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/train.txt'
+__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/segmentation/train.txt'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0430_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0530_2020'
 
 # the model scale
 __C.general.model_scale = 'fine'
@@ -55,6 +55,10 @@ __C.dataset.sampling_method = 'HYBRID'
 
 # translation augmentation (unit: mm)
 __C.dataset.random_translation = [64, 64, 5]
+
+# spacing scale augmentation, spacing scale will be randomly selected from [min, max]
+# during training, the image spacing will be spacing * scale
+__C.dataset.random_scale = [0.8, 1.2]
 
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
@@ -102,7 +106,7 @@ __C.net.name = 'vbnet'
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 1101
+__C.train.epochs = 1001
 
 # the number of samples in a batch
 __C.train.batchsize = 6

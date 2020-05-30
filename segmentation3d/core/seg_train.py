@@ -60,6 +60,7 @@ def train(train_config_file):
                 crop_size=train_cfg.dataset.crop_size,
                 sampling_method=train_cfg.dataset.sampling_method,
                 random_translation=train_cfg.dataset.random_translation,
+                random_scale=train_cfg.dataset.random_scale,
                 interpolation=train_cfg.dataset.interpolation,
                 crop_normalizers=train_cfg.dataset.crop_normalizers)
 

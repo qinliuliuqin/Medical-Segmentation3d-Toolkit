@@ -34,7 +34,7 @@ class SegmentationDataset(Dataset):
     """ training data set for volumetric segmentation """
 
     def __init__(self, imlist_file, num_classes, spacing, crop_size, sampling_method,
-                 random_translation, interpolation, crop_normalizers):
+                 random_translation, random_scale, interpolation, crop_normalizers):
         """ constructor
         :param imlist_file: image-segmentation list file
         :param num_classes: the number of classes
@@ -58,18 +58,21 @@ class SegmentationDataset(Dataset):
         self.crop_size = np.array(crop_size, dtype=np.int32)
         assert self.crop_size.size == 3, 'only 3-element of crop size is supported'
 
-        assert sampling_method in ('CENTER', 'GLOBAL', 'MASK', 'HYBRID'), \
-            'sampling_method must be CENTER, GLOBAL, MASK or HYBRID'
         self.sampling_method = sampling_method
+        assert self.sampling_method in ('CENTER', 'GLOBAL', 'MASK', 'HYBRID'), \
+            'sampling_method must be CENTER, GLOBAL, MASK or HYBRID'
 
         self.random_translation = np.array(random_translation, dtype=np.double)
         assert self.random_translation.size == 3, 'Only 3-element of random translation is supported'
 
-        assert interpolation in ('LINEAR', 'NN'), 'interpolation must either be a LINEAR or NN'
-        self.interpolation = interpolation
+        self.random_scale = np.array(random_scale, dtype=np.double)
+        assert self.random_scale.size == 2, 'Only 2-element of random scale is supported'
 
-        assert isinstance(crop_normalizers, list), 'crop normalizers must be a list'
+        self.interpolation = interpolation
+        assert self.interpolation in ('LINEAR', 'NN'), 'interpolation must either be a LINEAR or NN'
+
         self.crop_normalizers = crop_normalizers
+        assert isinstance(self.crop_normalizers, list), 'crop normalizers must be a list'
 
     def __len__(self):
         """ get the number of images in this data set """
@@ -159,14 +162,17 @@ class SegmentationDataset(Dataset):
         # random translation
         center += np.random.uniform(-self.random_translation, self.random_translation, size=[3])
 
+        # random resampling
+        crop_spacing = self.spacing * np.random.uniform(self.random_scale[0], self.random_scale[1])
+
         # sample a crop from image and normalize it
         for idx in range(len(images)):
-            images[idx] = crop_image(images[idx], center, self.crop_size, self.spacing, self.interpolation)
+            images[idx] = crop_image(images[idx], center, self.crop_size, crop_spacing, self.interpolation)
 
             if self.crop_normalizers[idx] is not None:
                 images[idx] = self.crop_normalizers[idx](images[idx])
 
-        seg = crop_image(seg, center, self.crop_size, self.spacing, 'NN')
+        seg = crop_image(seg, center, self.crop_size, crop_spacing, 'NN')
 
         # image frame
         frame = get_image_frame(seg)
