@@ -360,7 +360,7 @@ def resample_spacing(image, resampled_spacing, max_stride, interp_method):
     in_direction = [float(image.GetDirection()[idx]) for idx in range(9)]
 
     out_spacing = [float(resampled_spacing[idx]) for idx in range(3)]
-    out_size = [int(in_size[idx] * in_spacing[idx] / out_spacing[idx] + 0.5) for idx in range(3)]
+    out_size = [np.ceil(in_size[idx] * in_spacing[idx] / out_spacing[idx]) for idx in range(3)]
     for idx in range(3):
         if out_size[idx] % max_stride:
             out_size[idx] = max_stride * (out_size[idx] // max_stride + 1)
