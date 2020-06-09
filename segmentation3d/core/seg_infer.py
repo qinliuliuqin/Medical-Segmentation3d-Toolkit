@@ -445,7 +445,10 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
 
         # save segmentation probability map
         if save_prob:
-            num_classes = models['fine_model']['out_channels']
+            if models['coarse_model'] is not None:
+                num_classes = models['coarse_model']['out_channels']
+            else:
+                num_classes = models['fine_model']['out_channels']
             for idx in range(num_classes):
                 mean_prob_save_path = os.path.join(output_folder, case_name, 'mean_prob_{}.mha'.format(idx))
                 sitk.WriteImage(mean_probs[idx], mean_prob_save_path, True)
