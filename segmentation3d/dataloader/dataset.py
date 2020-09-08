@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import pandas as pd
 import SimpleITK as sitk
 from torch.utils.data import Dataset
 
@@ -24,10 +25,30 @@ def read_train_txt(imlist_file):
         im_path, seg_path = lines[1 + i * 2], lines[2 + i * 2]
         assert os.path.isfile(im_path), 'image not exist: {}'.format(im_path)
         assert os.path.isfile(seg_path), 'mask not exist: {}'.format(seg_path)
-        im_list.append([im_path])
+        im_list.append(im_path)
         seg_list.append(seg_path)
 
     return im_list, seg_list
+
+
+def read_train_csv(imlist_file, mode='train'):
+    """ read single-modality csv file
+    :param imlist_file: image list file path
+    :return: a list of image path list, list of segmentation paths
+    """
+    images_df = pd.read_csv(imlist_file)
+    image_name_list = images_df['image_name'].tolist()
+    image_path_list = images_df['image_path'].tolist()
+
+    if mode == 'test':
+        return image_name_list, image_path_list
+
+    elif mode == 'train' or mode == 'validation':
+        mask_path_list = images_df['mask_path'].tolist()
+        return image_path_list, mask_path_list
+
+    else:
+        raise ValueError('Unsupported mode type.')
 
 
 class SegmentationDataset(Dataset):
@@ -47,6 +68,10 @@ class SegmentationDataset(Dataset):
         """
         if imlist_file.endswith('txt'):
             self.im_list, self.seg_list = read_train_txt(imlist_file)
+
+        elif imlist_file.endswith('csv'):
+            self.im_list, self.seg_list = read_train_csv(imlist_file)
+
         else:
             raise ValueError('imseg_list must be a txt file')
 
@@ -80,7 +105,7 @@ class SegmentationDataset(Dataset):
 
     def num_modality(self):
         """ get the number of input image modalities """
-        return len(self.im_list[0])
+        return 1
 
     def global_sample(self, image):
         """ random sample a position in the image
@@ -119,7 +144,8 @@ class SegmentationDataset(Dataset):
         :param index:  the sample index
         :return cropped image, cropped mask, crop frame, case name
         """
-        image_paths, seg_path = self.im_list[index], self.seg_list[index]
+        image_path, seg_path = self.im_list[index], self.seg_list[index]
+        image_paths = [image_path]
 
         case_name = os.path.basename(os.path.dirname(image_paths[0]))
         case_name += '_' + os.path.basename(image_paths[0])
