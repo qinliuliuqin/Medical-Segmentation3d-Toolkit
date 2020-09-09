@@ -326,7 +326,7 @@ def convert_tensor_to_image(tensor, dtype):
     return image
 
 
-def resample(image, reference, interp_method):
+def resample(image, reference, interp_method, padding_value=0.0):
     """ Resample image based on inference image
     """
     assert isinstance(image, sitk.Image)
@@ -340,7 +340,7 @@ def resample(image, reference, interp_method):
         raise ValueError('Unsupported interpolation type.')
 
     identity_transform = sitk.Transform(3, sitk.sitkIdentity)
-    return sitk.Resample(image, reference, identity_transform, interp_method)
+    return sitk.Resample(image, reference, identity_transform, interp_method, padding_value)
 
 
 def resample_spacing(image, resampled_spacing, max_stride, interp_method):
