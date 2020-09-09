@@ -4,6 +4,7 @@ import glob
 import importlib
 import torch.nn as nn
 import os
+import pandas as pd
 import SimpleITK as sitk
 import time
 import torch
@@ -42,6 +43,26 @@ def read_test_txt(txt_file):
         file_path_list.append(im_path)
 
     return file_name_list, file_path_list
+
+
+def read_test_csv(imlist_file, mode='test'):
+    """ read single-modality csv file
+    :param imlist_file: image list file path
+    :return: a list of image path list, list of segmentation paths
+    """
+    images_df = pd.read_csv(imlist_file)
+    image_name_list = images_df['image_name'].tolist()
+    image_path_list = images_df['image_path'].tolist()
+
+    if mode == 'test':
+        return image_name_list, image_path_list
+
+    elif mode == 'train' or mode == 'validation':
+        mask_path_list = images_df['mask_path'].tolist()
+        return image_path_list, mask_path_list
+
+    else:
+        raise ValueError('Unsupported mode type.')
 
 
 def read_test_folder(folder_path, is_dicom_folder):
