@@ -6,13 +6,13 @@ import pandas as pd
 train_idx = list(range(1, 62))
 test_idx = list(range(62, 83))
 
-# image_folder = '/shenlab/lab_stor4/xychen/original_based_heatmap_prediction/updated_data/NIH_pancreas/images'
-# label_folder = '/shenlab/lab_stor4/xychen/original_based_heatmap_prediction/updated_data/NIH_pancreas/label'
+image_folder = '/shenlab/lab_stor4/xychen/original_based_heatmap_prediction/updated_data/NIH_pancreas/images'
+label_folder = '/shenlab/lab_stor4/xychen/original_based_heatmap_prediction/updated_data/NIH_pancreas/label'
 
-image_folder = '/mnt/projects/Pancreas/label'
-label_folder = '/mnt/projects/Pancreas/label'
+#image_folder = '/mnt/projects/Pancreas/label'
+#label_folder = '/mnt/projects/Pancreas/label'
 
-dataset_save_folder = '/mnt/projects/Pancreas/dataset'
+dataset_save_folder = '/shenlab/lab_stor6/qinliu/CT_Pancreas/dataset'
 if not os.path.isdir(dataset_save_folder):
     os.makedirs(dataset_save_folder)
 
@@ -45,5 +45,5 @@ for i in range(len(test_image_paths)):
     image_name = image_path.split('/')[-1]
     mask_path = os.path.join(label_folder, test_label_paths[i])
     test_content.append([image_name, image_path, mask_path])
-train_df = pd.DataFrame(train_content, columns=['image_name', 'image_path', 'mask_path'])
-train_df.to_csv(os.path.join(dataset_save_folder, 'test.csv'), index=False)
+test_df = pd.DataFrame(test_content, columns=['image_name', 'image_path', 'mask_path'])
+test_df.to_csv(os.path.join(dataset_save_folder, 'test.csv'), index=False)
