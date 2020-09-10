@@ -29,6 +29,7 @@ def cal_dsc_batch(gt_files, seg_files, labels, threshold, save_csv_file_path):
 
         # calculate dsc for each label
         case_name = os.path.basename(os.path.dirname(gt_case_path))
+        case_name = os.path.basename(gt_case_path)
         content = [case_name]
         for label in labels:
             score, type = cal_dsc(gt_npy, seg_npy, label, threshold)

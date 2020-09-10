@@ -13,19 +13,19 @@ cfg = __C
 __C.general = {}
 
 # image-segmentation pair list
-__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/segmentation/train.txt'
+__C.general.imseg_list = '/shenlab/lab_stor6/qinliu/CT_Pancreas/dataset/train.csv'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Dental/models/model_0530_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_0908_2020'
 
 # the model scale
-__C.general.model_scale = 'fine'
+__C.general.model_scale = 'contrast'
 
 # continue training from certain epoch, -1 to train from scratch
 __C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
-__C.general.num_gpus = 3
+__C.general.num_gpus = 1
 
 # random seed used in training (debugging purpose)
 __C.general.seed = 0
@@ -38,13 +38,13 @@ __C.general.seed = 0
 __C.dataset = {}
 
 # the number of classes
-__C.dataset.num_classes = 3
+__C.dataset.num_classes = 2
 
 # the resolution on which segmentation is performed
-__C.dataset.spacing = [0.4, 0.4, 0.4]
+__C.dataset.spacing = [0.8, 0.8, 0.8]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [128, 128, 128]
+__C.dataset.crop_size = [64, 64, 64]
 
 # sampling method:
 # 1) GLOBAL: sampling crops randomly in the entire image domain
@@ -54,11 +54,11 @@ __C.dataset.crop_size = [128, 128, 128]
 __C.dataset.sampling_method = 'HYBRID'
 
 # translation augmentation (unit: mm)
-__C.dataset.random_translation = [64, 64, 5]
+__C.dataset.random_translation = [15, 15, 15]
 
 # spacing scale augmentation, spacing scale will be randomly selected from [min, max]
 # during training, the image spacing will be spacing * scale
-__C.dataset.random_scale = [0.8, 1.2]
+__C.dataset.random_scale = [0.9, 1.1]
 
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
@@ -84,7 +84,7 @@ __C.loss.name = 'Focal'
 
 # the weight for each class including background class
 # weights will be normalized
-__C.loss.obj_weight = [1/3, 1/3, 1/3]
+__C.loss.obj_weight = [1/2, 1/2]
 
 # the gamma parameter in focal loss
 __C.loss.focal_gamma = 2
@@ -109,10 +109,10 @@ __C.train = {}
 __C.train.epochs = 1001
 
 # the number of samples in a batch
-__C.train.batchsize = 6
+__C.train.batchsize = 4
 
 # the number of threads for IO
-__C.train.num_threads = 6
+__C.train.num_threads = 4
 
 # the learning rate
 __C.train.lr = 1e-4
