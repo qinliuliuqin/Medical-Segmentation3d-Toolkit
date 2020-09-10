@@ -9,7 +9,7 @@ class DownBlock(nn.Module):
     super(DownBlock, self).__init__()
     out_channels = in_channels * 2
     self.down_conv = nn.Conv3d(in_channels, out_channels, kernel_size=2, stride=2, groups=1)
-    self.down_gn = nn.GroupNorm(1, num_channels=out_channels)
+    self.down_gn = nn.GroupNorm(out_channels, num_channels=out_channels)
     self.down_act = nn.ReLU(inplace=True)
     if compression:
       self.rblock = BottResidualBlock3(out_channels, 3, 1, 1, ratio, num_convs)

@@ -8,7 +8,7 @@ class ConvGnRelu3(nn.Module):
     def __init__(self, in_channels, out_channels, ksize, stride, padding, do_act=True, bias=True):
         super(ConvGnRelu3, self).__init__()
         self.conv = nn.Conv3d(in_channels, out_channels, ksize, stride=stride, padding=padding, groups=1, bias=bias)
-        self.gn = nn.GroupNorm(1, out_channels)
+        self.gn = nn.GroupNorm(out_channels, out_channels)
         self.do_act = do_act
         if do_act:
             self.act = nn.ReLU(inplace=True)
