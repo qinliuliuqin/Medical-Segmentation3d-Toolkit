@@ -80,6 +80,7 @@ __C.loss = {}
 # the name of loss function to use
 # Focal: Focal loss, supports binary-class and multi-class segmentation
 # Dice: Dice Similarity Loss which supports binary and multi-class segmentation
+# CE: Cross Entropy loss
 __C.loss.name = 'Focal'
 
 # the weight for each class including background class

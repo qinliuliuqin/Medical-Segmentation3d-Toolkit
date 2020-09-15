@@ -94,6 +94,9 @@ def train(train_config_file):
     elif train_cfg.loss.name == 'Dice':
         loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=train_cfg.general.num_gpus > 0)
+    elif train_cfg.loss.name == 'CE':
+        loss_func = torch.nn.CrossEntropyLoss()
+
     else:
         raise ValueError('Unknown loss function')
 
