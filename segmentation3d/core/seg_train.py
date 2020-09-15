@@ -119,6 +119,11 @@ def train(train_config_file):
 
         # network forward and backward
         outputs = net(crops)
+
+        # fix a bug
+        if train_cfg.loss.name == 'CE':
+            masks = torch.squeeze(masks, dim=1)
+
         train_loss = loss_func(outputs, masks)
         train_loss.backward()
 
