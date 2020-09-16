@@ -13,6 +13,7 @@ from segmentation3d.dataloader.dataset import SegmentationDataset
 from segmentation3d.dataloader.sampler import EpochConcateSampler
 from segmentation3d.loss.focal_loss import FocalLoss
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
+from segmentation3d.loss.cross_entropy_loss import CrossEntropyLoss
 from segmentation3d.utils.file_io import load_config, setup_logger
 from segmentation3d.utils.image_tools import save_intermediate_results
 from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint
@@ -95,7 +96,7 @@ def train(train_config_file):
         loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=train_cfg.general.num_gpus > 0)
     elif train_cfg.loss.name == 'CE':
-        loss_func = torch.nn.CrossEntropyLoss()
+        loss_func = CrossEntropyLoss()
 
     else:
         raise ValueError('Unknown loss function')
@@ -119,12 +120,6 @@ def train(train_config_file):
 
         # network forward and backward
         outputs = net(crops)
-
-        # fix a bug
-        if train_cfg.loss.name == 'CE':
-            masks = torch.squeeze(masks, dim=1)
-            masks = masks.long()
-
         train_loss = loss_func(outputs, masks)
         train_loss.backward()
 
