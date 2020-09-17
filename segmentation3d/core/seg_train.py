@@ -128,6 +128,7 @@ def train(train_config_file):
         train_loss = loss_func(outputs, masks)
 
         if train_cfg.dataset.mixup:
+            masks_mixup = masks_mixup.cuda()
             train_loss_mixup = loss_func(outputs, masks_mixup)
             train_loss = alpha * train_loss + (1 - alpha) * train_loss_mixup
 
