@@ -53,13 +53,6 @@ __C.dataset.crop_size = [64, 64, 64]
 # 4) CENTER: sampling crops in the image center
 __C.dataset.sampling_method = 'HYBRID'
 
-# translation augmentation (unit: mm)
-__C.dataset.random_translation = [15, 15, 15]
-
-# spacing scale augmentation, spacing scale will be randomly selected from [min, max]
-# during training, the image spacing will be spacing * scale
-__C.dataset.random_scale = [0.9, 1.1]
-
 # linear interpolation method:
 # 1) NN: nearest neighbor interpolation
 # 2) LINEAR: linear interpolation
@@ -70,6 +63,20 @@ __C.dataset.interpolation = 'LINEAR'
 # 1) FixedNormalizer: use fixed mean and standard deviation to normalize intensity
 # 2) AdaptiveNormalizer: use minimum and maximum intensity of crop to normalize intensity
 __C.dataset.crop_normalizers = [AdaptiveNormalizer()]
+
+##################################
+# data augmentation parameters
+##################################
+
+# translation augmentation (unit: mm)
+__C.dataset.random_translation = [15, 15, 15]
+
+# spacing scale augmentation, spacing scale will be randomly selected from [min, max]
+# during training, the image spacing will be spacing * scale
+__C.dataset.random_scale = [0.9, 1.1]
+
+# mixup data augmentation
+__C.dataset.mixup = True
 
 ##################################
 # training loss
