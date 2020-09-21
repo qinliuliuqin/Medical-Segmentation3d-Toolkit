@@ -120,6 +120,7 @@ def train(train_config_file):
         if use_mixup:
             crops_mixup, masks_mixup, _, _ = data_iter.next()
             alpha = beta_func.sample()
+            if train_cfg.general.num_gpus > 0: alpha = alpha.cuda()
             crops = alpha * crops + (1 - alpha) * crops_mixup
 
         if train_cfg.general.num_gpus > 0:
@@ -133,7 +134,7 @@ def train(train_config_file):
         train_loss = loss_func(outputs, masks)
 
         if use_mixup:
-            masks_mixup = masks_mixup.cuda()
+            if train_cfg.general.num_gpus > 0: masks_mixup = masks_mixup.cuda()
             train_loss_mixup = loss_func(outputs, masks_mixup)
             train_loss = alpha * train_loss + (1 - alpha) * train_loss_mixup
 
