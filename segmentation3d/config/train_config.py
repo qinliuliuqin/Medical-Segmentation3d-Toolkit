@@ -76,7 +76,11 @@ __C.dataset.random_translation = [15, 15, 15]
 __C.dataset.random_scale = [0.9, 1.1]
 
 # mixup data augmentation
-__C.dataset.mixup = True
+# x = lambda * x1 + (1 - lambda) * x2
+# y = lambda * y1 + (1 - lambda) * y2
+# lambda ~ Beta(alpha, alpha)
+# If alpha < 0, then the mixup will be disabled.
+__C.dataset.mixup_alpha = 0.1
 
 ##################################
 # training loss

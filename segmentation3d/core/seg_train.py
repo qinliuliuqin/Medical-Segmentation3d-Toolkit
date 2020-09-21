@@ -53,6 +53,11 @@ def train(train_config_file):
     if train_cfg.general.num_gpus > 0:
         torch.cuda.manual_seed(train_cfg.general.seed)
 
+    use_mixup = int(train_cfg.dataset.mixup_alpha >= 0)
+    if use_mixup:
+        import torch.distributions.beta as beta
+        beta_func = beta.Beta(train_cfg.dataset.mixup_alpha, train_cfg.dataset.mixup_alpha)
+
     # dataset
     dataset = SegmentationDataset(
                 imlist_file=train_cfg.general.imseg_list,
@@ -65,7 +70,7 @@ def train(train_config_file):
                 interpolation=train_cfg.dataset.interpolation,
                 crop_normalizers=train_cfg.dataset.crop_normalizers)
 
-    sampler = EpochConcateSampler(dataset, train_cfg.train.epochs)
+    sampler = EpochConcateSampler(dataset, train_cfg.train.epochs + train_cfg.train.epochs * use_mixup)
     data_loader = DataLoader(dataset, sampler=sampler, batch_size=train_cfg.train.batchsize,
                              num_workers=train_cfg.train.num_threads, pin_memory=True)
 
@@ -112,9 +117,9 @@ def train(train_config_file):
 
         crops, masks, frames, filenames = data_iter.next()
 
-        if train_cfg.dataset.mixup:
+        if use_mixup:
             crops_mixup, masks_mixup, _, _ = data_iter.next()
-            alpha = np.random.rand()
+            alpha = beta_func.sample()
             crops = alpha * crops + (1 - alpha) * crops_mixup
 
         if train_cfg.general.num_gpus > 0:
@@ -127,7 +132,7 @@ def train(train_config_file):
         outputs = net(crops)
         train_loss = loss_func(outputs, masks)
 
-        if train_cfg.dataset.mixup:
+        if use_mixup:
             masks_mixup = masks_mixup.cuda()
             train_loss_mixup = loss_func(outputs, masks_mixup)
             train_loss = alpha * train_loss + (1 - alpha) * train_loss_mixup
