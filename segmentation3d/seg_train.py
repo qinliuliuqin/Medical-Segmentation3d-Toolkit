@@ -6,7 +6,7 @@ from segmentation3d.core.seg_train import train
 def main():
 
     import os
-    os.environ['CUDA_VISIBLE_DEVICES'] = '5'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
     long_description = "Training engine for 3d medical image segmentation"
     parser = argparse.ArgumentParser(description=long_description)
