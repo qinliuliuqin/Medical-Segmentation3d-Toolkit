@@ -22,7 +22,7 @@ from segmentation3d.utils.image_tools import save_intermediate_results
 from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint, delete_checkpoint
 
 
-def get_data_loader(train_cfg, use_mixup):
+def get_data_loader(train_cfg):
     """
     Get data loader
     """
@@ -41,10 +41,8 @@ def get_data_loader(train_cfg, use_mixup):
     data_loader = DataLoader(dataset, sampler=sampler, batch_size=train_cfg.train.batchsize,
                              num_workers=train_cfg.train.num_threads, pin_memory=True)
 
-    data_loader_m = None
-    if use_mixup:
-        dataset_m = SegmentationDataset(
-            imlist_file=train_cfg.general.imseg_list_train,
+    dataset_m = SegmentationDataset(
+            imlist_file=train_cfg.general.imseg_list_train_ul,
             num_classes=train_cfg.dataset.num_classes,
             spacing=train_cfg.dataset.spacing,
             crop_size=train_cfg.dataset.crop_size,
@@ -54,46 +52,49 @@ def get_data_loader(train_cfg, use_mixup):
             interpolation=train_cfg.dataset.interpolation,
             crop_normalizers=train_cfg.dataset.crop_normalizers)
 
-        sampler_m = EpochConcateSampler(dataset_m, train_cfg.train.epochs)
-        data_loader_m = DataLoader(dataset_m, sampler=sampler_m, batch_size=train_cfg.train.batchsize,
-                                 num_workers=train_cfg.train.num_threads, pin_memory=True)
+    sampler_m = EpochConcateSampler(dataset_m, train_cfg.train.epochs)
+    data_loader_m = DataLoader(dataset_m, sampler=sampler_m, batch_size=train_cfg.train.batchsize,
+                               num_workers=train_cfg.train.num_threads, pin_memory=True)
 
     return data_loader, data_loader_m
 
 
-def train_one_epoch(net, data_loader, loss_func, opt, logger, epoch_idx, use_gpu=True, use_mixup=False, data_loader_m=None,
+def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, epoch_idx, use_gpu=True, use_mixup=False,
                     mixup_alpha=-1, debug=False, model_folder=''):
     """
 
     """
+
     data_iter = iter(data_loader)
-    if use_mixup: data_iter_m = iter(data_loader_m)
+    data_iter_m = iter(data_loader_m)
+
     for batch_idx in range(len(data_loader.dataset)):
         begin_t = time.time()
 
         crops, masks, frames, filenames = data_iter.next()
-
-        if use_mixup:
-            beta_func = beta.Beta(mixup_alpha, mixup_alpha)
-            crops_mixup, masks_mixup, _, _ = data_iter_m.next()
-            alpha = beta_func.sample()
-            if use_gpu: alpha = alpha.cuda()
-            crops = alpha * crops + (1 - alpha) * crops_mixup
+        crops_m, _, _, _ = data_iter_m.next()
 
         if use_gpu > 0:
             crops, masks = crops.cuda(), masks.cuda()
+
+        # if use_mixup:
+        #     beta_func = beta.Beta(mixup_alpha, mixup_alpha)
+        #     crops_perm, masks_perm, _, _ = data_iter_m.next()
+        #     weight_lambda = beta_func.sample()
+        #     if use_gpu: weight_lambda = weight_lambda.cuda()
+        #     crops = weight_lambda * crops + (1 - weight_lambda) * crops_perm
 
         # clear previous gradients
         opt.zero_grad()
 
         # network forward and backward
         outputs = net(crops)
-        train_loss = loss_func(outputs, masks)
+        train_loss = sum([loss_func(outputs, masks) for loss_func in loss_funces])
 
-        if use_mixup:
-            if use_gpu: masks_mixup = masks_mixup.cuda()
-            train_loss_mixup = loss_func(outputs, masks_mixup)
-            train_loss = alpha * train_loss + (1 - alpha) * train_loss_mixup
+        # if use_mixup:
+        #     if use_gpu: masks_perm = masks_perm.cuda()
+        #     train_loss_perm = loss_func(outputs, masks_perm)
+        #     train_loss = weight_lambda * train_loss + (1 - weight_lambda) * train_loss_perm
 
         train_loss.backward()
 
@@ -154,7 +155,7 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
     if use_gpu: torch.cuda.manual_seed(train_cfg.general.seed)
 
     # dataset
-    data_loader, data_loader_m = get_data_loader(train_cfg, use_mixup)
+    data_loader, data_loader_m = get_data_loader(train_cfg)
     net_module = importlib.import_module('segmentation3d.network.' + train_cfg.net.name)
     net = net_module.SegmentationNet(1, train_cfg.dataset.num_classes)
     max_stride = net.max_stride()
@@ -171,28 +172,20 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
     else:
         last_save_epoch, batch_start = 0, 0
 
-    if train_cfg.loss.name == 'Focal':
-        # reuse focal loss if exists
-        loss_func = FocalLoss(class_num=train_cfg.dataset.num_classes, alpha=train_cfg.loss.obj_weight,
-                              gamma=train_cfg.loss.focal_gamma, use_gpu=use_gpu)
-
-    elif train_cfg.loss.name == 'Dice':
-        loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
+    # focal_loss_func = FocalLoss(class_num=train_cfg.dataset.num_classes, alpha=train_cfg.loss.obj_weight,
+    #                           gamma=train_cfg.loss.focal_gamma, use_gpu=use_gpu)
+    dice_loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=use_gpu)
-
-    elif train_cfg.loss.name == 'CE':
-        loss_func = CrossEntropyLoss()
-
-    else:
-        raise ValueError('Unknown loss function')
+    ce_loss_func = CrossEntropyLoss()
+    loss_funces = [dice_loss_func, ce_loss_func]
 
     writer = SummaryWriter(os.path.join(model_folder, 'tensorboard'))
 
     # loop over batches
     best_epoch, best_test_dsc, best_train_dsc = 1, 1.0, 0
     for epoch_idx in range(1, train_cfg.train.epochs + 1):
-        train_one_epoch(net, data_loader, loss_func, opt, logger, last_save_epoch + epoch_idx, use_gpu, use_mixup,
-                        data_loader_m, mixup_alpha, use_debug, train_cfg.general.save_dir)
+        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, last_save_epoch + epoch_idx, use_gpu, use_mixup,
+                        mixup_alpha, use_debug, train_cfg.general.save_dir)
 
         # inference
         if epoch_idx % train_cfg.train.save_epochs == 0:

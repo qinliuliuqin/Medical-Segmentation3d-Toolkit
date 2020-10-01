@@ -15,6 +15,8 @@ __C.general = {}
 # image-segmentation pair list
 __C.general.imseg_list_train = '/mnt/projects/CT_Dental/debug/dataset/train.csv'
 
+__C.general.imseg_list_train_ul = '/mnt/projects/CT_Dental/debug/dataset/train_ul.csv'
+
 __C.general.imseg_list_val = '/mnt/projects/CT_Dental/debug/dataset/test.csv'
 
 # the output of training models and logs
@@ -129,7 +131,7 @@ __C.train.batchsize = 1
 __C.train.num_threads = 1
 
 # the learning rate
-__C.train.lr = 1e-4
+__C.train.lr = 1e-3
 
 # the beta in Adam optimizer
 __C.train.betas = (0.9, 0.999)
