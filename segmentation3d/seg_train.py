@@ -20,7 +20,7 @@ def main():
                         default=-1)
 
     args = parser.parse_args()
-    train(args.input[0], args.input[1], args.gpu)
+    train(args.input[0], args.input[1], args.gpu_id)
 
 
 if __name__ == '__main__':
