@@ -91,3 +91,10 @@ def save_checkpoint(net, opt, epoch_idx, batch_idx, cfg, max_stride, num_modalit
 
     # save training configuration files
     shutil.copy(os.path.join(model_folder, 'train_config.py'), os.path.join(chk_folder, 'train_config.py'))
+
+
+def delete_checkpoint(epoch_idx, cfg):
+    """ Delete checkpoint folder """
+    model_folder = os.path.join(cfg.general.save_dir, cfg.general.model_scale)
+    chk_folder = os.path.join(model_folder, 'checkpoints', 'chk_{}'.format(epoch_idx))
+    shutil.rmtree(chk_folder)
