@@ -57,6 +57,10 @@ def read_test_csv(imlist_file, mode='test'):
     if mode == 'test':
         return image_name_list, image_path_list
 
+    elif mode == 'eval':
+        mask_path_list = images_df['mask_path'].tolist()
+        return image_name_list, image_path_list, mask_path_list
+
     elif mode == 'train' or mode == 'validation':
         mask_path_list = images_df['mask_path'].tolist()
         return image_path_list, mask_path_list
@@ -373,6 +377,10 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
     if os.path.isfile(input_path):
         if input_path.endswith('.txt'):
             file_name_list, file_path_list = read_test_txt(input_path)
+
+        elif input_path.endswith('.csv'):
+            file_name_list, file_path_list = read_test_csv(input_path, 'test')
+
         else:
             if input_path.endswith('.mhd') or input_path.endswith('.mha') or input_path.endswith('.nii.gz') or \
                     input_path.endswith('.nii') or input_path.endswith('.hdr') or input_path.endswith('.image3d'):

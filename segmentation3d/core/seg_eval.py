@@ -2,10 +2,23 @@ import os
 import pandas as pd
 import SimpleITK as sitk
 
+from segmentation3d.core.seg_infer import read_test_csv
 from segmentation3d.utils.metrics import cal_dsc
 
 
-def cal_dsc_batch(gt_files, seg_files, labels, threshold, save_csv_file_path):
+def evaluation(eval_file, seg_folder, seg_name, labels, threshold, save_csv_file_path):
+    """ Evaluation """
+    assert eval_file.endswith('.csv')
+
+    image_name_list, _, mask_path_list = read_test_csv(eval_file, mode='eval')
+    seg_path_list = []
+    for case_name in image_name_list:
+        seg_path_list.append(os.path.join(seg_folder, case_name, seg_name))
+
+    return cal_dsc_batch(mask_path_list, seg_path_list, image_name_list, labels, threshold, save_csv_file_path)
+
+
+def cal_dsc_batch(gt_files, seg_files, case_names, labels, threshold, save_csv_file_path):
     """ Batch test for calculating dice ratio
     gt_files: a list containing all ground truth files.
     seg_files: a list containing all segmentation files.
@@ -28,8 +41,7 @@ def cal_dsc_batch(gt_files, seg_files, labels, threshold, save_csv_file_path):
         seg_npy = sitk.GetArrayFromImage(seg)
 
         # calculate dsc for each label
-        case_name = os.path.basename(os.path.dirname(gt_case_path))
-        case_name = os.path.basename(gt_case_path)
+        case_name = case_names[idx]
         content = [case_name]
         for label in labels:
             score, type = cal_dsc(gt_npy, seg_npy, label, threshold)
@@ -45,13 +57,19 @@ def cal_dsc_batch(gt_files, seg_files, labels, threshold, save_csv_file_path):
     df = pd.DataFrame(data=result_content, columns=column)
 
     statistics_content = [['mean'], ['std']]
+    mean_a, std_a = 0, 0
     for label in labels:
         mean, std = df['label{}_score'.format(label)].mean(), \
                     df['label{}_score'.format(label)].std()
         print(mean, std)
+        mean_a += mean
+        std_a += std
         statistics_content[0].extend([mean, 'ignore_type'])
         statistics_content[1].extend([std, 'ignore_type'])
 
-    df_statistics = pd.DataFrame(data=statistics_content, columns=column)
-    df = df.append(df_statistics)
-    df.to_csv(save_csv_file_path)
+    if save_csv_file_path is not None:
+        df_statistics = pd.DataFrame(data=statistics_content, columns=column)
+        df = df.append(df_statistics)
+        df.to_csv(save_csv_file_path)
+
+    return mean_a / len(labels), std_a / len(labels)
