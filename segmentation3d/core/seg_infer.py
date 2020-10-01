@@ -195,7 +195,10 @@ def load_models(model_folder, gpu_id=0):
         models.coarse_model = None
 
     elif models.infer_cfg.general.single_scale == 'DISABLE':
-        coarse_model_folder = os.path.join(model_folder, models.infer_cfg.coarse.model_name)
+        if os.path.isdir(models.infer_cfg.coarse.model_name):
+            coarse_model_folder = models.infer_cfg.coarse.model_name
+        else:
+            coarse_model_folder = os.path.join(model_folder, models.infer_cfg.coarse.model_name)
         coarse_model = load_single_model(coarse_model_folder, gpu_id)
         models.coarse_model = coarse_model
 
