@@ -89,7 +89,13 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         # network forward and backward
         outputs = net(crops)
-        train_loss = sum([loss_func(outputs, masks) for loss_func in loss_funces])
+        train_loss_s = sum([loss_func(outputs, masks) for loss_func in loss_funces])
+
+        outputs_m = net(crops_m)
+        _, masks_m = outputs_m.max(dim=1)
+        train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
+
+        train_loss = train_loss_s + train_loss_m
 
         # if use_mixup:
         #     if use_gpu: masks_perm = masks_perm.cuda()
@@ -110,8 +116,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         batch_duration = time.time() - begin_t
 
         # print training loss per batch
-        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
-        msg = msg.format(epoch_idx, batch_idx, train_loss.item(), batch_duration)
+        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
+        msg = msg.format(epoch_idx, batch_idx, train_loss_s.item(), train_loss_m.item(), batch_duration)
         logger.info(msg)
 
 
