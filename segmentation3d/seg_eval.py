@@ -8,9 +8,9 @@ def test_cal_dsc_batch():
   test_file = '/shenlab/lab_stor6/qinliu/CT_Pancreas/dataset/test.csv'
   gt_folder = '/shenlab/lab_stor4/xychen/original_based_heatmap_prediction/updated_data/NIH_pancreas/label'
   gt_name = 'seg.mha'
-  seg_folder = '/shenlab/lab_stor6/qinliu/CT_Pancreas/results/model_0908_2020'
+  seg_folder = '/shenlab/lab_stor6/qinliu/CT_Pancreas/results/model_0921_2020/contrast_7'
   seg_name = 'seg.nii.gz'
-  result_file = '/shenlab/lab_stor6/qinliu/CT_Pancreas/results/model_0908_2020/results_test_coarse_to_fine.csv'
+  result_file = '/shenlab/lab_stor6/qinliu/CT_Pancreas/results/model_0921_2020/results_train_coarse_to_fine.csv'
 
   if test_file.endswith('.txt'):
     file_list, case_list = read_test_txt(test_file)
