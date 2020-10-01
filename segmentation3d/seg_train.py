@@ -17,7 +17,7 @@ def main():
                         help='configure file for medical image segmentation training.')
     parser.add_argument('-g', '--gpu_id',
                         help='gpu_id for inference',
-                        default=-1)
+                        default=0)
 
     args = parser.parse_args()
     train(args.input[0], args.input[1], args.gpu_id)

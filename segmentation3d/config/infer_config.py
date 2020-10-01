@@ -13,7 +13,7 @@ __C.general = {}
 # 1) coarse: only run the coarse segmentation model
 # 2) fine: only run the fine segmentation model
 # 3) DISABLE: run the coarse model first and then run the fine model
-__C.general.single_scale = 'coarse'
+__C.general.single_scale = 'DISABLE'
 
 ##################################
 # Coarse model parameters
