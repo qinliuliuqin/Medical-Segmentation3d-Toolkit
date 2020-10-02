@@ -13,6 +13,9 @@ class CrossEntropyLoss(nn.Module):
     def forward(self, input, target):
         assert isinstance(input, torch.Tensor)
         assert isinstance(target, torch.Tensor)
+        if target.dim() == input.dim():
+            target = torch.squeeze(target, dim=1)
+
         return self.func(input, target)
 
 
