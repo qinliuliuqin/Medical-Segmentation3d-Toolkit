@@ -96,7 +96,7 @@ __C.loss = {}
 # Focal: Focal loss, supports binary-class and multi-class segmentation
 # Dice: Dice Similarity Loss which supports binary and multi-class segmentation
 # CE: Cross Entropy loss
-__C.loss.name = 'Dice+CE'
+__C.loss.name = ['Dice', 'CE']
 
 # the weight for each class including background class
 # weights will be normalized
@@ -139,6 +139,8 @@ __C.train.betas = (0.9, 0.999)
 # the number of batches to save model
 __C.train.save_epochs = 100
 
+# whether use unsupervised learning
+__C.train.use_ul = True
 
 ###################################
 # debug parameters

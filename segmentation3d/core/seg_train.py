@@ -60,22 +60,21 @@ def get_data_loader(train_cfg):
 
 
 def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, epoch_idx, use_gpu=True, use_mixup=False,
-                    mixup_alpha=-1, debug=False, model_folder=''):
+                    mixup_alpha=-1, use_ul=False, debug=False, model_folder=''):
     """
-
     """
-
     data_iter = iter(data_loader)
-    data_iter_m = iter(data_loader_m)
+    if use_ul: data_iter_m = iter(data_loader_m)
 
     for batch_idx in range(len(data_loader.dataset)):
         begin_t = time.time()
 
         crops, masks, frames, filenames = data_iter.next()
-        crops_m, _, _, _ = data_iter_m.next()
+        if use_gpu: crops, masks = crops.cuda(), masks.cuda()
 
-        if use_gpu > 0:
-            crops, masks = crops.cuda(), masks.cuda()
+        if use_ul:
+            crops_m, _, _, _ = data_iter_m.next()
+            if use_gpu: crops_m = crops_m.cuda()
 
         # if use_mixup:
         #     beta_func = beta.Beta(mixup_alpha, mixup_alpha)
@@ -89,13 +88,13 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         # network forward and backward
         outputs = net(crops)
-        train_loss_s = sum([loss_func(outputs, masks) for loss_func in loss_funces])
+        train_loss = sum([loss_func(outputs, masks) for loss_func in loss_funces])
 
-        outputs_m = net(crops_m)
-        _, masks_m = outputs_m.max(dim=1)
-        train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
-
-        train_loss = train_loss_s + train_loss_m
+        if use_ul:
+            outputs_m = net(crops_m)
+            _, masks_m = outputs_m.max(dim=1)
+            train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
+            train_loss += train_loss_m
 
         # if use_mixup:
         #     if use_gpu: masks_perm = masks_perm.cuda()
@@ -116,8 +115,13 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         batch_duration = time.time() - begin_t
 
         # print training loss per batch
-        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
-        msg = msg.format(epoch_idx, batch_idx, train_loss_s.item(), train_loss_m.item(), batch_duration)
+        if use_ul:
+            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
+            msg = msg.format(epoch_idx, batch_idx, train_loss.item() - train_loss_m.item(), train_loss_m.item(), batch_duration)
+        else:
+            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
+            msg = msg.format(epoch_idx, batch_idx, train_loss.item(), batch_duration)
+
         logger.info(msg)
 
 
@@ -133,6 +137,7 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
     infer_cfg = load_config(infer_config_file)
 
     # get training parameters
+    use_ul = train_cfg.train.use_ul
     use_debug = train_cfg.debug.save_inputs
     use_gpu = train_cfg.general.num_gpus > 0
     use_mixup = train_cfg.dataset.mixup_alpha >= 0
@@ -178,20 +183,30 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
     else:
         last_save_epoch, batch_start = 0, 0
 
-    # focal_loss_func = FocalLoss(class_num=train_cfg.dataset.num_classes, alpha=train_cfg.loss.obj_weight,
-    #                           gamma=train_cfg.loss.focal_gamma, use_gpu=use_gpu)
+    focal_loss_func = FocalLoss(class_num=train_cfg.dataset.num_classes, alpha=train_cfg.loss.obj_weight,
+                              gamma=train_cfg.loss.focal_gamma, use_gpu=use_gpu)
     dice_loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=use_gpu)
     ce_loss_func = CrossEntropyLoss()
-    loss_funces = [dice_loss_func, ce_loss_func]
+
+    loss_funces = []
+    for loss_name in train_cfg.loss.name:
+        if loss_name == 'Focal':
+            loss_funces.append(focal_loss_func)
+        elif loss_name == 'Dice':
+            loss_funces.append(dice_loss_func)
+        elif loss_name == 'CE':
+            loss_funces.append(ce_loss_func)
+        else:
+            raise ValueError('Unsupported loss name.')
 
     writer = SummaryWriter(os.path.join(model_folder, 'tensorboard'))
 
     # loop over batches
     best_epoch, best_test_dsc, best_train_dsc = 1, 0.0, 0
     for epoch_idx in range(1, train_cfg.train.epochs + 1):
-        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, last_save_epoch + epoch_idx, use_gpu, use_mixup,
-                        mixup_alpha, use_debug, train_cfg.general.save_dir)
+        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, last_save_epoch + epoch_idx, use_gpu,
+                        use_mixup, mixup_alpha, use_ul, use_debug, train_cfg.general.save_dir)
 
         # inference
         if epoch_idx % train_cfg.train.save_epochs == 0:
