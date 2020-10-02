@@ -13,8 +13,6 @@ class CrossEntropyLoss(nn.Module):
     def forward(self, input, target):
         assert isinstance(input, torch.Tensor)
         assert isinstance(target, torch.Tensor)
-
-        target = torch.squeeze(target, dim=1).long()
         return self.func(input, target)
 
 
@@ -22,5 +20,6 @@ if __name__ == '__main__':
 
     func = CrossEntropyLoss()
     input = torch.Tensor([[[0.0], [1.0]]])
-    target = torch.Tensor([[[1]]]).long()
+    target = torch.Tensor([[1]]).long()
+    print(input.shape, target.shape)
     print(func(input, target))

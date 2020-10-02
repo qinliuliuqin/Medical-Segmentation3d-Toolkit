@@ -92,8 +92,14 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         if use_ul:
             outputs_m = net(crops_m)
-            _, masks_m = outputs_m.max(dim=1)
-            train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
+            vals_m, masks_m = outputs_m.max(dim=1)
+            valid_index = vals_m > 0.8
+            vals_m_valid = vals_m[valid_index]
+            masks_m_valid = masks_m[valid_index]
+            if vals_m_valid.nelement() == 0 or masks_m_valid.nelement() == 0:
+                train_loss_m = 0
+            else:
+                train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
             train_loss += train_loss_m
 
         # if use_mixup:
