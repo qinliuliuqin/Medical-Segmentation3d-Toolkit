@@ -16,7 +16,7 @@ class CrossEntropyLoss(nn.Module):
         if target.dim() == input.dim():
             target = torch.squeeze(target, dim=1)
 
-        return self.func(input, target)
+        return self.func(input, target.long())
 
 
 if __name__ == '__main__':
