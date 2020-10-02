@@ -26,7 +26,7 @@ __C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_1001_2
 __C.general.model_scale = 'contrast_1'
 
 # continue training from certain epoch, -1 to train from scratch
-__C.general.resume_epoch = -1
+__C.general.resume_epoch = 1000
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
 __C.general.num_gpus = 1
@@ -122,13 +122,13 @@ __C.net.name = 'vbnet'
 __C.train = {}
 
 # the number of training epochs
-__C.train.epochs = 1001
+__C.train.epochs = 10001
 
 # the number of samples in a batch
-__C.train.batchsize = 2
+__C.train.batchsize = 1
 
 # the number of threads for IO
-__C.train.num_threads = 2
+__C.train.num_threads = 1
 
 # the learning rate
 __C.train.lr = 1e-3
@@ -137,7 +137,7 @@ __C.train.lr = 1e-3
 __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
-__C.train.save_epochs = 1
+__C.train.save_epochs = 100
 
 
 ###################################

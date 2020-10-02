@@ -21,7 +21,7 @@ __C.general.single_scale = 'DISABLE'
 __C.coarse = {}
 
 # the folder name containing the coarse model
-__C.coarse.model_name = 'coarse'
+__C.coarse.model_name = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_0921_2020/coarse'
 
 # Pick the largest connected component (cc) in segmentation
 # Options:
@@ -43,13 +43,13 @@ __C.coarse.partition_type = 'DISABLE'
 
 # if partition type = 'SIZE', set the partition size (unit: mm).
 # it is recommended to set this value as the same with the physical cropping size in the training phase
-__C.coarse.partition_size = [64.0, 64.0, 64.0]
+__C.coarse.partition_size = [102.4, 102.4, 102.4]
 
 # the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
 # between the partition windows. Otherwise, the value of the overlapped area will be averaged.
 # it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
 # different partition window.
-__C.coarse.partition_stride = [64.0, 64.0, 64.0]
+__C.coarse.partition_stride = [102.4, 102.4, 102.4]
 
 # ignore this parameter if you are using gpu for inference.
 # otherwise, set it larger than 1.0 so as to decrease the model resolution.
@@ -70,13 +70,13 @@ __C.coarse.cpu_partition_decrease_ratio = 1.0
 __C.fine = {}
 
 # the name of the folder containing the coarse model
-__C.fine.model_name = 'fine'
+__C.fine.model_name = 'contrast_1'
 
 # Pick the largest connected component (cc) in segmentation
 # Options:
 # 1) True: pick the largest connected component
 # 2) False: do not pick the largest connected component
-__C.fine.pick_largest_cc = True
+__C.fine.pick_largest_cc = False
 
 # Remove small connected component (cc) in segmentation
 # Options:
@@ -92,13 +92,13 @@ __C.fine.partition_type = 'SIZE'
 
 # if partition type = 'SIZE', set the partition size (unit: mm).
 # it is recommended to set this value as the same with the physical cropping size in the training phase
-__C.fine.partition_size = [89.6, 89.6, 89.6]
+__C.fine.partition_size = [102.4, 102.4, 102.4]
 
 # the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
 # between the partition windows. Otherwise, the value of the overlapped area will be averaged.
 # it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
 # different partition window.
-__C.fine.partition_stride = [89.6, 89.6, 89.6]
+__C.fine.partition_stride = [102.4, 102.4, 102.4]
 
 # ignore this parameter if you are using gpu for inference.
 # otherwise, set it larger than 1.0 so as to decrease the model resolution.
