@@ -209,9 +209,9 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
     writer = SummaryWriter(os.path.join(model_folder, 'tensorboard'))
 
     # loop over batches
-    best_epoch, best_test_dsc, best_train_dsc = 1, 0.0, 0
-    for epoch_idx in range(1, train_cfg.train.epochs + 1):
-        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, last_save_epoch + epoch_idx, use_gpu,
+    best_epoch, best_dsc_mean, best_dsc_std = last_save_epoch, 0.0, 0
+    for epoch_idx in range(last_save_epoch + 1, train_cfg.train.epochs + 1):
+        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, epoch_idx, use_gpu,
                         use_mixup, mixup_alpha, use_ul, use_debug, train_cfg.general.save_dir)
 
         # inference
@@ -225,10 +225,14 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
             labels = [idx for idx in range(1, train_cfg.dataset.num_classes)]
             mean, std = evaluation(train_cfg.general.imseg_list_val, seg_folder, 'seg.nii.gz', labels, 10, None)
 
-            if mean <= best_test_dsc: delete_checkpoint(epoch_idx, train_cfg)
-            else: best_test_dsc = mean
+            if mean <= best_dsc_mean: delete_checkpoint(epoch_idx, train_cfg)
+            else:
+                best_dsc_mean = mean
+                best_dsc_std = std
+                best_epoch = epoch_idx
 
-            msg = 'Best epoch {}, mean (std) = {} ({}).'.format(epoch_idx, mean, std)
+            msg = 'Best epoch {}, mean (std) = {:.4f} ({:.4f}), current epoch {} mean (std) = {:.4f} ({:.4f})'.format(
+                best_epoch, best_dsc_mean, best_dsc_std, epoch_idx, mean, std)
             logger.info(msg)
 
     writer.close()
