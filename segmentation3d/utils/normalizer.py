@@ -44,7 +44,7 @@ class AdaptiveNormalizer(object):
   Normalize image using z-score normalization.
   """
 
-  def __init__(self, clip_sigma=3):
+  def __init__(self, clip_sigma=5):
     """
     :param clip_sigma: clip the intensity within the 'clip_sigma' standard deviation. 68% voxels lies within 1
       standard deviation, 95% within 2 standard deviation, and 99.7% within 3 standard deviation.
