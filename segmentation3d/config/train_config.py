@@ -142,6 +142,9 @@ __C.train.save_epochs = 100
 # whether use unsupervised learning
 __C.train.use_ul = True
 
+# step size
+__C.train.step_size = 1
+
 ###################################
 # debug parameters
 ###################################
