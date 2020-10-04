@@ -17,6 +17,7 @@ from segmentation3d.dataloader.sampler import EpochConcateSampler
 from segmentation3d.loss.focal_loss import FocalLoss
 from segmentation3d.loss.multi_dice_loss import MultiDiceLoss
 from segmentation3d.loss.cross_entropy_loss import CrossEntropyLoss
+from segmentation3d.loss.entropy_minization import EntropyMinimizationLoss
 from segmentation3d.utils.file_io import load_config, setup_logger
 from segmentation3d.utils.image_tools import save_intermediate_results
 from segmentation3d.utils.model_io import load_checkpoint, save_checkpoint, delete_checkpoint
@@ -74,7 +75,10 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         if use_ul:
             crops_m, _, _, _ = data_iter_m.next()
-            if use_gpu: crops_m = crops_m.cuda()
+            crops_mn = crops_m + torch.randn_like(crops_m)
+            if use_gpu:
+                crops_m = crops_m.cuda()
+                crops_mn = crops_mn.cuda()
 
         # if use_mixup:
         #     beta_func = beta.Beta(mixup_alpha, mixup_alpha)
@@ -92,6 +96,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         if use_ul:
             outputs_m = net(crops_m)
+            outputs_mn = net(crops_mn)
+
             vals_m, masks_m = outputs_m.max(dim=1)
             valid_index = vals_m > 0.8
             vals_m_valid = vals_m[valid_index]
@@ -101,6 +107,10 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             else:
                 train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
             train_loss += train_loss_m
+
+            # add consistency regularization
+            train_loss_mn = EntropyMinimizationLoss()(outputs_m, outputs_mn)
+            train_loss += train_loss_mn
 
         # if use_mixup:
         #     if use_gpu: masks_perm = masks_perm.cuda()
@@ -122,8 +132,9 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         # print training loss per batch
         if use_ul:
-            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss.item() - train_loss_m.item(), train_loss_m.item(), batch_duration)
+            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, {:.4f}, time: {:.4f} s/vol'
+            msg = msg.format(epoch_idx, batch_idx, train_loss.item() - train_loss_m.item(), train_loss_m.item(),
+                             train_loss_mn.item(), batch_duration)
         else:
             msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
             msg = msg.format(epoch_idx, batch_idx, train_loss.item(), batch_duration)
