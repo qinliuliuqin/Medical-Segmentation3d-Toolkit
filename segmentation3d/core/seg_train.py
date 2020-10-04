@@ -7,6 +7,7 @@ import torch
 import torch.distributions.beta as beta
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
@@ -60,7 +61,7 @@ def get_data_loader(train_cfg):
     return data_loader, data_loader_m
 
 
-def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, epoch_idx, use_gpu=True, use_mixup=False,
+def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, sch, logger, epoch_idx, use_gpu=True, use_mixup=False,
                     mixup_alpha=-1, use_ul=False, debug=False, model_folder=''):
     """
     """
@@ -121,6 +122,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         # update weights
         opt.step()
+        sch.step()
 
         # save training crops for visualization
         if debug:
@@ -193,6 +195,7 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
 
     # training optimizer
     opt = optim.Adam(net.parameters(), lr=train_cfg.train.lr, betas=train_cfg.train.betas)
+    scheduler = StepLR(opt, step_size=train_cfg.train.step_size, gamma=0.9)
 
     # load checkpoint if resume epoch > 0
     if train_cfg.general.resume_epoch >= 0:
