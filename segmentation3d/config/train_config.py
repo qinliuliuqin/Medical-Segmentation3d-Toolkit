@@ -26,7 +26,7 @@ __C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_1001_2
 __C.general.model_scale = 'contrast_1'
 
 # continue training from certain epoch, -1 to train from scratch
-__C.general.resume_epoch = 1000
+__C.general.resume_epoch = 1700
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
 __C.general.num_gpus = 1
@@ -96,7 +96,7 @@ __C.loss = {}
 # Focal: Focal loss, supports binary-class and multi-class segmentation
 # Dice: Dice Similarity Loss which supports binary and multi-class segmentation
 # CE: Cross Entropy loss
-__C.loss.name = ['Dice', 'CE']
+__C.loss.name = ['CE']
 
 # the weight for each class including background class
 # weights will be normalized
@@ -143,7 +143,7 @@ __C.train.save_epochs = 100
 __C.train.use_ul = True
 
 # step size
-__C.train.step_size = 1
+__C.train.step_size = 500
 
 ###################################
 # debug parameters

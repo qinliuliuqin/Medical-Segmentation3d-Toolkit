@@ -99,15 +99,15 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, sch, logg
             outputs_m = net(crops_m)
             outputs_mn = net(crops_mn)
 
-            vals_m, masks_m = outputs_m.max(dim=1)
-            valid_index = vals_m > 0.8
-            vals_m_valid = vals_m[valid_index]
-            masks_m_valid = masks_m[valid_index]
-            if vals_m_valid.nelement() == 0 or masks_m_valid.nelement() == 0:
-                train_loss_m = 0
-            else:
-                train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
-            train_loss += train_loss_m
+            #vals_m, masks_m = outputs_m.max(dim=1)
+            #valid_index = vals_m > 0.8
+            #vals_m_valid = vals_m[valid_index]
+            #masks_m_valid = masks_m[valid_index]
+            #if vals_m_valid.nelement() == 0 or masks_m_valid.nelement() == 0:
+            #    train_loss_m = 0
+            #else:
+            #    train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
+            #train_loss += train_loss_m
 
             # add consistency regularization
             train_loss_mn = EntropyMinimizationLoss()(outputs_m, outputs_mn)
@@ -134,9 +134,10 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, sch, logg
 
         # print training loss per batch
         if use_ul:
-            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss.item() - train_loss_m.item() - train_loss_mn.item(),
-                             train_loss_m.item(), train_loss_mn.item(), batch_duration)
+            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
+            msg = msg.format(epoch_idx, batch_idx, train_loss.item() - train_loss_mn.item(),
+                             train_loss_mn.item(), batch_duration)
+
         else:
             msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
             msg = msg.format(epoch_idx, batch_idx, train_loss.item(), batch_duration)
@@ -195,7 +196,7 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
 
     # training optimizer
     opt = optim.Adam(net.parameters(), lr=train_cfg.train.lr, betas=train_cfg.train.betas)
-    scheduler = StepLR(opt, step_size=train_cfg.train.step_size, gamma=0.9)
+    scheduler = StepLR(opt, step_size=train_cfg.train.step_size, gamma=0.5)
 
     # load checkpoint if resume epoch > 0
     if train_cfg.general.resume_epoch >= 0:
