@@ -61,7 +61,7 @@ def get_data_loader(train_cfg):
     return data_loader, data_loader_m
 
 
-def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, sch, logger, epoch_idx, use_gpu=True, use_mixup=False,
+def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, epoch_idx, use_gpu=True, use_mixup=False,
                     mixup_alpha=-1, use_ul=False, debug=False, model_folder=''):
     """
     """
@@ -122,7 +122,6 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, sch, logg
 
         # update weights
         opt.step()
-        sch.step()
 
         # save training crops for visualization
         if debug:
@@ -226,8 +225,10 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
     # loop over batches
     best_epoch, best_dsc_mean, best_dsc_std = last_save_epoch, 0.0, 0
     for epoch_idx in range(last_save_epoch + 1, train_cfg.train.epochs + 1):
-        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, scheduler, logger, epoch_idx, use_gpu,
+        train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, epoch_idx, use_gpu,
                         use_mixup, mixup_alpha, use_ul, use_debug, train_cfg.general.save_dir)
+
+        scheduler.step()
 
         # inference
         if epoch_idx % train_cfg.train.save_epochs == 0:
