@@ -97,7 +97,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         # network forward and backward
         outputs = net(crops)
-        train_loss = sum([loss_func(outputs, masks) for loss_func in loss_funces])
+        train_loss_o = sum([loss_func(outputs, masks) for loss_func in loss_funces])
+        train_loss = train_loss_o
 
         if use_ul:
             outputs_m = net(crops_m)
@@ -143,12 +144,11 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         # print training loss per batch
         if use_ul:
             msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss.item() - train_loss_m.item(),
-                             train_loss_m.item(), batch_duration)
+            msg = msg.format(epoch_idx, batch_idx, train_loss_o.item(), train_loss_m.item(), batch_duration)
 
         else:
             msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss.item(), batch_duration)
+            msg = msg.format(epoch_idx, batch_idx, train_loss_o.item(), batch_duration)
 
         logger.info(msg)
 
