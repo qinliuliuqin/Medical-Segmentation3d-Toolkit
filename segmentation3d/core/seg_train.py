@@ -109,7 +109,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
             valid_index = vals_mn > 0.8
             masks_m_valid = masks_m[valid_index]
-            outputs_mn_valid = outputs_mn[valid_index]
+            outputs_mn_valid = outputs_mn[:, :, valid_index[0, :]]
             if masks_m_valid.nelement() == 0:
                train_loss_m = 0
             else:
