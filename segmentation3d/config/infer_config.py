@@ -70,7 +70,7 @@ __C.coarse.cpu_partition_decrease_ratio = 1.0
 __C.fine = {}
 
 # the name of the folder containing the coarse model
-__C.fine.model_name = 'contrast_1'
+__C.fine.model_name = 'fine'
 
 # Pick the largest connected component (cc) in segmentation
 # Options:
@@ -92,13 +92,13 @@ __C.fine.partition_type = 'SIZE'
 
 # if partition type = 'SIZE', set the partition size (unit: mm).
 # it is recommended to set this value as the same with the physical cropping size in the training phase
-__C.fine.partition_size = [102.4, 102.4, 102.4]
+__C.fine.partition_size = [102.4, 102.4, 76.8]
 
 # the moving stride of the partition window. If set it as the same with the partition size, there will be no overlap
 # between the partition windows. Otherwise, the value of the overlapped area will be averaged.
 # it is recommended to set this value as 1/4 of the partition size in order to avoid the apparent in-consistence between
 # different partition window.
-__C.fine.partition_stride = [102.4, 102.4, 102.4]
+__C.fine.partition_stride = [102.4, 102.4, 76.8]
 
 # ignore this parameter if you are using gpu for inference.
 # otherwise, set it larger than 1.0 so as to decrease the model resolution.

@@ -20,13 +20,13 @@ __C.general.imseg_list_train_ul = '/shenlab/lab_stor6/qinliu/CT_Pancreas/dataset
 __C.general.imseg_list_val = '/shenlab/lab_stor6/qinliu/CT_Pancreas/dataset/test.csv'
 
 # the output of training models and logs
-__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_1001_2020'
+__C.general.save_dir = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_1005_2020/contrast_1'
 
 # the model scale
-__C.general.model_scale = 'contrast_1'
+__C.general.model_scale = 'fine'
 
 # continue training from certain epoch, -1 to train from scratch
-__C.general.resume_epoch = 1700
+__C.general.resume_epoch = -1
 
 # the number of GPUs used in training. Set to 0 if using cpu only.
 __C.general.num_gpus = 1
@@ -48,7 +48,7 @@ __C.dataset.num_classes = 2
 __C.dataset.spacing = [0.8, 0.8, 0.8]
 
 # the sampling crop size, e.g., determine the context information
-__C.dataset.crop_size = [128, 128, 128]
+__C.dataset.crop_size = [128, 128, 96]
 
 # sampling method:
 # 1) GLOBAL: sampling crops randomly in the entire image domain
@@ -96,7 +96,7 @@ __C.loss = {}
 # Focal: Focal loss, supports binary-class and multi-class segmentation
 # Dice: Dice Similarity Loss which supports binary and multi-class segmentation
 # CE: Cross Entropy loss
-__C.loss.name = ['CE']
+__C.loss.name = ['CE', 'Dice']
 
 # the weight for each class including background class
 # weights will be normalized
@@ -140,10 +140,10 @@ __C.train.betas = (0.9, 0.999)
 __C.train.save_epochs = 100
 
 # whether use unsupervised learning
-__C.train.use_ul = True
+__C.train.use_ul = False
 
 # step size
-__C.train.step_size = 500
+__C.train.step_size = 1000
 
 ###################################
 # debug parameters
