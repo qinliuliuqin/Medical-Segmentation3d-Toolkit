@@ -38,7 +38,7 @@ class center_based_mapping_layer(nn.Module):
 
 if __name__ == '__main__':
 
-    batch, in_ch, out_ch, dim_z, dim_y, dim_x = 1, 3, 5, 2, 4, 2
+    batch, in_ch, out_ch, dim_z, dim_y, dim_x = 1, 32, 16, 8, 8, 8
     in_tensor = torch.randn(batch, in_ch, dim_z, dim_y, dim_x)
 
     c_layer = center_based_mapping_layer(in_ch, out_ch)
@@ -50,3 +50,5 @@ if __name__ == '__main__':
     assert c_out.shape == p_out.shape
     assert c_out.shape[0] == batch and c_out.shape[1] == out_ch
     assert c_out.shape[2] == dim_z and c_out.shape[3] == dim_y and c_out.shape[4] == dim_x
+    assert sum(p.numel() for p in c_layer.parameters()) == in_ch * out_ch + out_ch + in_ch
+    assert sum(p.numel() for p in p_layer.parameters()) == in_ch * out_ch + out_ch
