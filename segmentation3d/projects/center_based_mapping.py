@@ -31,7 +31,7 @@ class center_based_mapping_layer(nn.Module):
 
         in_shape = in_tensor.shape
         in_tensor = in_tensor.permute(dims=[0,2,3,4,1]).view(in_shape[0], -1, 1, in_shape[1])
-        out_tensor = self.cls_scale * torch.sqrt(((in_tensor - self.center) * (in_tensor - self.center) * self.dim_scale).mean(dim=-1))
+        out_tensor = self.cls_scale * torch.sqrt(1e-6 + ((in_tensor - self.center) * (in_tensor - self.center) * self.dim_scale).mean(dim=-1))
 
         return out_tensor.view(in_shape[0], self.out_channels, in_shape[2], in_shape[3], in_shape[4])
 
