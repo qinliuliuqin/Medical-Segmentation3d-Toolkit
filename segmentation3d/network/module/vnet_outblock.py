@@ -36,15 +36,15 @@ class OutputBlock_center_based(nn.Module):
   def __init__(self, in_channels, out_channels):
     super(OutputBlock_center_based, self).__init__()
     self.conv1 = center_based_mapping_layer(in_channels, out_channels)
-    self.gn1 = nn.GroupNorm(1, out_channels)
-    self.act1 = nn.ReLU(inplace=True)
 
-    self.conv2 = center_based_mapping_layer(out_channels, out_channels)
-    self.gn2 = nn.GroupNorm(1, out_channels)
+    # self.gn1 = nn.GroupNorm(1, out_channels)
+    # self.act1 = nn.ReLU(inplace=True)
+    #
+    # self.conv2 = center_based_mapping_layer(out_channels, out_channels)
+    # self.gn2 = nn.GroupNorm(1, out_channels)
     self.softmax = nn.Softmax(dim=1)
 
   def forward(self, input):
-    out = self.act1(self.gn1(self.conv1(input)))
-    out = self.gn2(self.conv2(out))
+    out = self.conv1(input)
     out = self.softmax(out)
     return out
