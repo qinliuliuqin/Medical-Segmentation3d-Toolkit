@@ -50,7 +50,7 @@ class SegmentationNet(nn.Module):
         res = self.out_block(out)
 
         if train:
-            res_aux = self.out_block_aux()
+            res_aux = self.out_block_aux(out)
             return res, res_aux
         else:
             return res
