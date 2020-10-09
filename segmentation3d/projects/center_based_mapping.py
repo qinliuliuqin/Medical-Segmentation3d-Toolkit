@@ -21,9 +21,9 @@ class center_based_mapping_layer(nn.Module):
 
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.center = nn.Parameter(torch.randn(1, 1, out_channels, in_channels))
-        self.dim_scale = nn.Parameter(torch.exp(torch.randn(1, 1, 1, in_channels)))
-        self.cls_scale = nn.Parameter(torch.exp(torch.randn(1, 1, out_channels)))
+        self.center = nn.Parameter(nn.init.normal_(torch.zeros([1, 1, out_channels, in_channels])), requires_grad=True)
+        self.dim_scale = nn.Parameter(torch.exp(nn.init.uniform_(torch.zeros([1, 1, 1, in_channels]), -0.1, 0.1)), requires_grad=True)
+        self.cls_scale = nn.Parameter(nn.init.uniform_(torch.zeros([1, 1, out_channels]), -0.1, 0.1), requires_grad=True)
 
     def forward(self, in_tensor):
         assert isinstance(in_tensor, torch.Tensor) and in_tensor.dim() == 5
