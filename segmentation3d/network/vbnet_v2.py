@@ -32,9 +32,10 @@ class SegmentationNet(nn.Module):
         self.up_128 = UpBlock(256, 128, 3, compression=True)
         self.up_64 = UpBlock(128, 64, 2, compression=False)
         self.up_32 = UpBlock(64, 32, 1, compression=False)
-        self.out_block = OutputBlock_center_based(32, out_channels)
+        self.out_block_aux = OutputBlock_center_based(32, out_channels)
+        self.out_block = OutputBlock(32, out_channels)
 
-    def forward(self, input):
+    def forward(self, input, train=False):
         assert isinstance(input, torch.Tensor)
 
         out16 = self.in_block(input)
@@ -46,8 +47,13 @@ class SegmentationNet(nn.Module):
         out = self.up_128(out, out64)
         out = self.up_64(out, out32)
         out = self.up_32(out, out16)
-        out = self.out_block(out)
-        return out
+        res = self.out_block(out)
+
+        if train:
+            res_aux = self.out_block_aux()
+            return res, res_aux
+        else:
+            return res
 
     def max_stride(self):
         return 16

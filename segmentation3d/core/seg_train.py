@@ -96,9 +96,10 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         opt.zero_grad()
 
         # network forward and backward
-        outputs = net(crops)
+        outputs, outputs_aux = net(crops, True)
         train_loss_o = sum([loss_func(outputs, masks) for loss_func in loss_funces])
-        train_loss = train_loss_o
+        train_loss_o_aux = sum([loss_func(outputs_aux, masks) for loss_func in loss_funces])
+        train_loss = train_loss_o + train_loss_o_aux
 
         if use_ul:
             outputs_m = net(crops_m)
