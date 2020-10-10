@@ -76,57 +76,57 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         if use_ul:
             crops_m, _, _, _ = data_iter_m.next()
-            if torch.randn(1) > 0:
-                crops_mn = crops_m + 0.3 * torch.rand_like(crops_m)
-            else:
-                crops_mn = crops_m - 0.3 * torch.rand_like(crops_m)
 
             if use_gpu:
                 crops_m = crops_m.cuda()
-                crops_mn = crops_mn.cuda()
-
-        # if use_mixup:
-        #     beta_func = beta.Beta(mixup_alpha, mixup_alpha)
-        #     crops_perm, masks_perm, _, _ = data_iter_m.next()
-        #     weight_lambda = beta_func.sample()
-        #     if use_gpu: weight_lambda = weight_lambda.cuda()
-        #     crops = weight_lambda * crops + (1 - weight_lambda) * crops_perm
 
         # clear previous gradients
         opt.zero_grad()
 
         # network forward and backward
-        outputs = net(crops)
+        noise = torch.zeros_like(crops).uniform_(-0.3, 0.3)
+        if use_gpu: noise = noise.cuda()
+
+        outputs = net(crops + noise)
         train_loss_o = sum([loss_func(outputs, masks) for loss_func in loss_funces])
         train_loss = train_loss_o
 
         if use_ul:
-            outputs_m = net(crops_m)
-            outputs_mn = net(crops_mn)
+            noise = torch.zeros_like(crops_m).uniform_(-0.3, 0.3)
+            if use_gpu: noise = noise.cuda()
+
+            outputs_m = net(crops_m + noise)
+
+            # get pseudo-label
+            pseudo_label = torch.zeros_like(outputs_m)
+            if use_gpu: pseudo_label = pseudo_label.cuda()
+
+            with torch.no_grad():
+                num_iter = 5
+                for idx in range(num_iter):
+                    noise = torch.zeros_like(crops_m).uniform_(-0.3, 0.3)
+                    if use_gpu: noise = noise.cuda()
+                    pseudo_label += net(crops_m + noise)
+                pseudo_label = pseudo_label / num_iter
 
             # masks_m is the pseudo-label, vals_mn is the prediction
-            _, masks_m = outputs_m.max(dim=1)
-            vals_mn, _ = outputs_mn.max(dim=1)
+            vals_m, _ = outputs_m.max(dim=1)
+            _, pseudo_label = pseudo_label.max(dim=1)
 
-            valid_index = vals_mn > 0.8
-            masks_m_valid = masks_m[:, valid_index[0, :]]
-            outputs_mn_valid = outputs_mn[:, :, valid_index[0, :]]
-            if masks_m_valid.nelement() == 0:
+            valid_index = vals_m > 0.80
+            outputs_m_valid = outputs_m[:, :, valid_index[0, :]]
+            pseudo_label_valid = pseudo_label[:, valid_index[0, :]]
+            if pseudo_label_valid.nelement() == 0:
                train_loss_m = 0
             else:
-               train_loss_m = sum([loss_func(outputs_mn_valid, masks_m_valid) for loss_func in loss_funces])
+               train_loss_m = sum([loss_func(outputs_m_valid, pseudo_label_valid) for loss_func in loss_funces])
 
-            if epoch_idx > 1000:
+            if epoch_idx > 10:
                 train_loss = train_loss + min(1, (epoch_idx - 1000) / 1000) * train_loss_m
 
             # add consistency regularization
             # train_loss_mn = EntropyMinimizationLoss()(outputs_m, outputs_mn)
             # train_loss += train_loss_mn
-
-        # if use_mixup:
-        #     if use_gpu: masks_perm = masks_perm.cuda()
-        #     train_loss_perm = loss_func(outputs, masks_perm)
-        #     train_loss = weight_lambda * train_loss + (1 - weight_lambda) * train_loss_perm
 
         train_loss.backward()
 
@@ -147,8 +147,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             msg = msg.format(epoch_idx, batch_idx, train_loss.item(), train_loss_m.item(), batch_duration)
 
         else:
-            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss_o.item(), batch_duration)
+            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, train_loss: {:.4f}, time: {:.4f} s/vol'
+            msg = msg.format(epoch_idx, batch_idx, train_loss_o.item(), train_loss_m.item(), batch_duration)
 
         logger.info(msg)
 
