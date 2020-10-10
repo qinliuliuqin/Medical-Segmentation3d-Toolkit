@@ -99,20 +99,20 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             outputs_m = net(crops_m + noise)
 
             # get pseudo-label
-            pseudo_label = torch.zeros_like(outputs_m)
-            if use_gpu: pseudo_label = pseudo_label.cuda()
+            outputs_m_avg = torch.zeros_like(outputs_m)
+            if use_gpu: outputs_m_avg = outputs_m_avg.cuda()
 
             with torch.no_grad():
                 num_iter = 5
                 for idx in range(num_iter):
                     noise = torch.zeros_like(crops_m).uniform_(-0.3, 0.3)
                     if use_gpu: noise = noise.cuda()
-                    pseudo_label += net(crops_m + noise)
-                pseudo_label = pseudo_label / num_iter
+                    outputs_m_avg += net(crops_m + noise)
+                outputs_m_avg /= num_iter
 
             # masks_m is the pseudo-label, vals_mn is the prediction
             vals_m, _ = outputs_m.max(dim=1)
-            _, pseudo_label = pseudo_label.max(dim=1)
+            _, pseudo_label = outputs_m_avg.max(dim=1)
 
             valid_index = vals_m > 0.80
             outputs_m_valid = outputs_m[:, :, valid_index[0, :]]
@@ -145,6 +145,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
                 save_intermediate_results(list(range(batch_size)), crops_m, masks_m, outputs_m, frames, filenames,
                                           os.path.join(model_folder, 'ul_batch_{}'.format(batch_idx)))
 
+                pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
                 save_intermediate_results(list(range(batch_size)), crops_m, pseudo_label, outputs_m, frames, filenames,
                                           os.path.join(model_folder, 'ul_pseudo_batch_{}'.format(batch_idx)))
 
