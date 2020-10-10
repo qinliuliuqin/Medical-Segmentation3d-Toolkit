@@ -75,10 +75,11 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         if use_gpu: crops, masks = crops.cuda(), masks.cuda()
 
         if use_ul:
-            crops_m, _, _, _ = data_iter_m.next()
+            crops_m, masks_m, _, _ = data_iter_m.next()
 
             if use_gpu:
                 crops_m = crops_m.cuda()
+                masks_m = masks_m.cuda()
 
         # clear previous gradients
         opt.zero_grad()
@@ -139,6 +140,13 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             batch_size = crops.size(0)
             save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
                                       os.path.join(model_folder, 'batch_{}'.format(batch_idx)))
+
+            if use_ul:
+                save_intermediate_results(list(range(batch_size)), crops_m, masks_m, outputs_m, frames, filenames,
+                                          os.path.join(model_folder, 'ul_batch_{}'.format(batch_idx)))
+
+                save_intermediate_results(list(range(batch_size)), crops_m, pseudo_label, outputs_m, frames, filenames,
+                                          os.path.join(model_folder, 'ul_pseudo_batch_{}'.format(batch_idx)))
 
         batch_duration = time.time() - begin_t
 
