@@ -121,8 +121,9 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             else:
                train_loss_m = sum([loss_func(outputs_m_valid, pseudo_label_valid) for loss_func in loss_funces])
 
-            if epoch_idx > 10:
-                train_loss = train_loss + min(1, (epoch_idx - 1000) / 1000) * train_loss_m
+            epoch_start_idx = 500
+            if epoch_idx > epoch_start_idx:
+                train_loss = train_loss + min(1, (epoch_idx - epoch_start_idx) / 1000) * train_loss_m
 
             # add consistency regularization
             # train_loss_mn = EntropyMinimizationLoss()(outputs_m, outputs_mn)
