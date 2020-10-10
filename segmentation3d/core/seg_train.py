@@ -110,6 +110,9 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
                     outputs_m_avg += net(crops_m + noise)
                 outputs_m_avg /= num_iter
 
+            # mask out
+            outputs_m_avg = outputs_m_avg * masks_m
+
             # masks_m is the pseudo-label, vals_mn is the prediction
             vals_m, _ = outputs_m.max(dim=1)
             _, pseudo_label = outputs_m_avg.max(dim=1)
@@ -125,10 +128,6 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             epoch_start_idx = 500
             if epoch_idx > epoch_start_idx:
                 train_loss = train_loss + min(1, (epoch_idx - epoch_start_idx) / 1000) * train_loss_m
-
-            # add consistency regularization
-            # train_loss_mn = EntropyMinimizationLoss()(outputs_m, outputs_mn)
-            # train_loss += train_loss_mn
 
         train_loss.backward()
 
