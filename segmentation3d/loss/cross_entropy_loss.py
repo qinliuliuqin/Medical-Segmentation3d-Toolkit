@@ -14,7 +14,7 @@ class CrossEntropyLoss(nn.Module):
         assert isinstance(input, torch.Tensor)
         assert isinstance(target, torch.Tensor)
 
-        if target.dim() == input.dim() == 5 or target.dim() == input.dim() == 2:
+        if target.dim() == input.dim() == 5 or target.dim() == input.dim() == 3:
             target = torch.squeeze(target, dim=1)
 
         return self.func(input, target.long())
