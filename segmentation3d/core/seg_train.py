@@ -147,7 +147,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
                 save_intermediate_results(list(range(batch_size)), crops_m, masks_m, outputs_m, frames, filenames,
                                           os.path.join(model_folder, 'ul_batch_{}'.format(batch_idx)))
 
-                pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
+                if pseudo_label.dim() == 4:
+                    pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
                 save_intermediate_results(list(range(batch_size)), crops_m, pseudo_label, outputs_m, frames, filenames,
                                           os.path.join(model_folder, 'ul_pseudo_batch_{}'.format(batch_idx)))
 
