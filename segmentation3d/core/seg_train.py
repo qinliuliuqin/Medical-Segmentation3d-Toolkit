@@ -112,8 +112,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
                 outputs_m_avg /= num_iter
 
             # get pseudo label
-            _, pseudo_label = outputs_m_avg.max(dim=1)
-            pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
+            _, pseudo_mask = outputs_m_avg.max(dim=1)
+            pseudo_label = torch.unsqueeze(pseudo_mask, dim=1)
 
             # weakly supervised spatial regularization
             pseudo_label = pseudo_label * (masks_m > 0)
