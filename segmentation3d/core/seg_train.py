@@ -89,6 +89,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         if use_gpu: noise = noise.cuda()
 
         outputs = net(crops + noise)
+
         train_loss_o = sum([loss_func(outputs, masks) for loss_func in loss_funces])
         train_loss = train_loss_o
 
@@ -98,34 +99,34 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
             outputs_m = net(crops_m + noise)
 
-            # # get pseudo-label
-            # outputs_m_avg = torch.zeros_like(outputs_m)
-            # if use_gpu: outputs_m_avg = outputs_m_avg.cuda()
-            #
-            # with torch.no_grad():
-            #     num_iter = 5
-            #     for idx in range(num_iter):
-            #         noise = torch.zeros_like(crops_m).uniform_(-0.3, 0.3)
-            #         if use_gpu: noise = noise.cuda()
-            #         outputs_m_avg += net(crops_m + noise)
-            #     outputs_m_avg /= num_iter
-            #
-            # # mask out
-            # outputs_m_avg = outputs_m_avg * masks_m
-            #
-            # # masks_m is the pseudo-label, vals_mn is the prediction
-            # vals_m, _ = outputs_m.max(dim=1)
-            # _, pseudo_label = outputs_m_avg.max(dim=1)
-            #
-            # valid_index = vals_m > 0.80
-            # outputs_m_valid = outputs_m[:, :, valid_index[0, :]]
-            # pseudo_label_valid = pseudo_label[:, valid_index[0, :]]
-            # if pseudo_label_valid.nelement() == 0:
-            #    train_loss_m = 0
-            # else:
-            #    train_loss_m = sum([loss_func(outputs_m_valid, pseudo_label_valid) for loss_func in loss_funces])
+            # get pseudo-label
+            outputs_m_avg = torch.zeros_like(outputs_m)
+            if use_gpu: outputs_m_avg = outputs_m_avg.cuda()
 
-            train_loss_m = sum([loss_func(outputs_m, masks_m) for loss_func in loss_funces])
+            with torch.no_grad():
+                num_iter = 5
+                for idx in range(num_iter):
+                    noise = torch.zeros_like(crops_m).uniform_(-0.3, 0.3)
+                    if use_gpu: noise = noise.cuda()
+                    outputs_m_avg += net(crops_m + noise)
+                outputs_m_avg /= num_iter
+
+            # get pseudo label
+            _, pseudo_label = outputs_m_avg.max(dim=1)
+            pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
+
+            # weakly supervised spatial regularization
+            pseudo_label = pseudo_label * (masks_m > 0)
+
+            # masks_m is the pseudo-label, vals_mn is the prediction
+            vals_m, _ = outputs_m.max(dim=1)
+            valid_index = vals_m > 0.80
+            outputs_m_valid = outputs_m[:, :, valid_index[0, :]]
+            pseudo_label_valid = pseudo_label[:, :, valid_index[0, :]]
+            if pseudo_label_valid.nelement() == 0:
+               train_loss_m = 0
+            else:
+               train_loss_m = sum([loss_func(outputs_m_valid, pseudo_label_valid) for loss_func in loss_funces])
 
             epoch_start_idx = 500
             if epoch_idx > epoch_start_idx:
