@@ -137,7 +137,7 @@ __C.train.lr = 1e-3
 __C.train.betas = (0.9, 0.999)
 
 # the number of batches to save model
-__C.train.save_epochs = 100
+__C.train.save_epochs = 10
 
 # whether use unsupervised learning
 __C.train.use_ul = True
