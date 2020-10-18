@@ -90,9 +90,6 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         outputs = net(crops + noise)
 
-        train_loss_o = sum([loss_func(outputs, masks) for loss_func in loss_funces])
-        train_loss = train_loss_o
-
         if use_ul:
             noise = torch.zeros_like(crops_m).uniform_(-0.3, 0.3)
             if use_gpu: noise = noise.cuda()
@@ -120,15 +117,20 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
             outputs_m_valid = outputs_m[:, :, valid_idx[0, 0, :]]
             pseudo_label_valid = pseudo_label[:, :, valid_idx[0, 0, :]]
-            if pseudo_label_valid.nelement() == 0:
-                train_loss_m = 0
-            else:
-                train_loss_m = sum([loss_func(outputs_m_valid, pseudo_label_valid) for loss_func in loss_funces])
+            if pseudo_label_valid.nelement() > 0:
+                outputs = outputs.view(outputs.shape[0], outputs.shape[1], -1)
+                masks = masks.view(masks.shape[0], masks.shape[1], -1)
 
-            epoch_start_idx = 500
-            if epoch_idx > epoch_start_idx:
-                train_loss = train_loss + min(1, (epoch_idx - epoch_start_idx) / 1000) * train_loss_m
+                outputs = torch.cat([outputs, outputs_m_valid], dim=2)
+                masks = torch.cat([masks, pseudo_label_valid], dim=2)
 
+        # statistics of the masks
+        num_pos_samples = (masks > 0).sum()
+        num_neg_samples = masks.nelement() - num_pos_samples.item()
+        msg = 'Pos samples: {}, Neg samples: {}'.format(num_pos_samples, num_neg_samples)
+        logger.info(msg)
+
+        train_loss = sum([loss_func(outputs, masks) for loss_func in loss_funces])
         train_loss.backward()
 
         # update weights
@@ -152,12 +154,8 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
         batch_duration = time.time() - begin_t
 
         # print training loss per batch
-        if use_ul:
-            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss.item(), train_loss_m, batch_duration)
-        else:
-            msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, train_loss: {:.4f}, time: {:.4f} s/vol'
-            msg = msg.format(epoch_idx, batch_idx, train_loss_o.item(), train_loss_m.item(), batch_duration)
+        msg = 'epoch: {}, batch: {}, train_loss: {:.4f}, time: {:.4f} s/vol'
+        msg = msg.format(epoch_idx, batch_idx, train_loss.item(), batch_duration)
 
         logger.info(msg)
 
