@@ -122,7 +122,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
                 masks = masks.view(masks.shape[0], masks.shape[1], -1)
 
                 outputs = torch.cat([outputs, outputs_m_valid], dim=2)
-                masks = torch.cat([masks, pseudo_label_valid], dim=2)
+                masks = torch.cat([masks.long(), pseudo_label_valid], dim=2)
 
         # statistics of the masks
         num_pos_samples = (masks > 0).sum()
@@ -223,7 +223,7 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
                               gamma=train_cfg.loss.focal_gamma, use_gpu=use_gpu)
     dice_loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=use_gpu)
-    ce_loss_func = CrossEntropyLoss()
+    ce_loss_func = CrossEntropyLoss(weights=train_cfg.loss.obj_weight)
 
     loss_funces = []
     for loss_name in train_cfg.loss.name:
