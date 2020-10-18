@@ -223,7 +223,7 @@ def train(train_config_file, infer_config_file, infer_gpu_id):
                               gamma=train_cfg.loss.focal_gamma, use_gpu=use_gpu)
     dice_loss_func = MultiDiceLoss(weights=train_cfg.loss.obj_weight, num_class=train_cfg.dataset.num_classes,
                                   use_gpu=use_gpu)
-    ce_loss_func = CrossEntropyLoss(weights=train_cfg.loss.obj_weight)
+    ce_loss_func = CrossEntropyLoss(weights=train_cfg.loss.obj_weight, use_gpu=use_gpu)
 
     loss_funces = []
     for loss_name in train_cfg.loss.name:
