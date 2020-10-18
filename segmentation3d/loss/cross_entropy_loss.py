@@ -5,12 +5,14 @@ import torch.nn as nn
 class CrossEntropyLoss(nn.Module):
 
     def __init__(self, weights=None, size_average=None, ignore_index=-100,
-                 reduce=None, reduction='mean'):
+                 reduce=None, reduction='mean', use_gpu=False):
         super(CrossEntropyLoss, self).__init__()
 
         if weights is not None:
             weights = torch.FloatTensor(weights)
             weights = weights / weights.sum()
+
+        if use_gpu: weights = weights.cuda()
 
         self.func = nn.CrossEntropyLoss(weights, size_average, ignore_index, reduce, reduction)
 
