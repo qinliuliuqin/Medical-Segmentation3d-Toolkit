@@ -77,11 +77,19 @@ def test_pick_largest_connected_component():
 
 def test_get_bounding_box():
 
-  seg_path = '/mnt/projects/CT_Dental/results/model_0429_2020/Pre_Post_Facial_Data-Ma_debug/n07_orginImg_post/seg.mha'
+  seg_path = '/mnt/projects/CT_Pancreas/label/label0001.nii.gz'
   seg = sitk.ReadImage(seg_path)
 
-  bbox = get_bounding_box(seg, None)
-  print(bbox)
+  bbox_start, bbox_end = get_bounding_box(seg, None)
+  print(bbox_start, bbox_end)
+
+  seg_bbox_mask_npy = sitk.GetArrayFromImage(seg)
+  seg_bbox_mask_npy[bbox_start[2]:bbox_end[2], bbox_start[1]:bbox_end[1], bbox_start[0]:bbox_end[0]] = 1
+  seg_bbox_mask = sitk.GetImageFromArray(seg_bbox_mask_npy)
+  seg_bbox_mask.CopyInformation(seg)
+
+  seg_bbox_mask_path = '/home/ql/debug/bbox_mask.nii.gz'
+  sitk.WriteImage(seg_bbox_mask, seg_bbox_mask_path)
 
 
 if __name__ == '__main__':

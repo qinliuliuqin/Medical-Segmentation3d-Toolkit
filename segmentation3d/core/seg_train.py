@@ -71,15 +71,12 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
     for batch_idx in range(len(data_loader.dataset)):
         begin_t = time.time()
 
-        crops, masks, frames, filenames = data_iter.next()
+        crops, masks, _, frames, filenames = data_iter.next()
         if use_gpu: crops, masks = crops.cuda(), masks.cuda()
 
         if use_ul:
-            crops_m, masks_m, _, _ = data_iter_m.next()
-
-            if use_gpu:
-                crops_m = crops_m.cuda()
-                masks_m = masks_m.cuda()
+            crops_m, masks_m, masks_bbox_m, _, _ = data_iter_m.next()
+            if use_gpu: crops_m, masks_m, masks_bbox_m = crops_m.cuda(), masks_m.cuda(), masks_bbox_m.cuda()
 
         # clear previous gradients
         opt.zero_grad()
@@ -113,7 +110,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
             # weakly supervised spatial regularization
             valid_idx = pseudo_label > 0
-            pseudo_label = pseudo_label * (masks_m > 0)
+            pseudo_label = pseudo_label * (masks_bbox_m > 0)
 
             outputs_m_valid = outputs_m[:, :, valid_idx[0, 0, :]]
             pseudo_label_valid = pseudo_label[:, :, valid_idx[0, 0, :]]
@@ -143,7 +140,7 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
                                       os.path.join(model_folder, 'batch_{}'.format(batch_idx)))
 
             if use_ul:
-                save_intermediate_results(list(range(batch_size)), crops_m, masks_m, outputs_m, frames, filenames,
+                save_intermediate_results(list(range(batch_size)), crops_m, masks_bbox_m, outputs_m, frames, filenames,
                                           os.path.join(model_folder, 'ul_batch_{}'.format(batch_idx)))
 
                 if pseudo_label.dim() == 4:
