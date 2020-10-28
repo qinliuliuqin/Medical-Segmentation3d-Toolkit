@@ -112,6 +112,23 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
             valid_idx = pseudo_label > 0
             pseudo_label = pseudo_label * (masks_bbox_m > 0)
 
+            # save training crops for visualization
+            if debug:
+                batch_size = crops.size(0)
+                save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
+                                          os.path.join(model_folder, 'batch_{}'.format(batch_idx)))
+
+                if use_ul:
+                    save_intermediate_results(list(range(batch_size)), crops_m, masks_bbox_m, outputs_m, frames,
+                                              filenames,
+                                              os.path.join(model_folder, 'ul_batch_{}'.format(batch_idx)))
+
+                    if pseudo_label.dim() == 4:
+                        pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
+                    save_intermediate_results(list(range(batch_size)), crops_m, pseudo_label, outputs_m, frames,
+                                              filenames,
+                                              os.path.join(model_folder, 'ul_pseudo_batch_{}'.format(batch_idx)))
+
             outputs_m_valid = outputs_m[:, :, valid_idx[0, 0, :]]
             pseudo_label_valid = pseudo_label[:, :, valid_idx[0, 0, :]]
             if pseudo_label_valid.nelement() > 0:
@@ -132,21 +149,6 @@ def train_one_epoch(net, data_loader, data_loader_m, loss_funces, opt, logger, e
 
         # update weights
         opt.step()
-
-        # save training crops for visualization
-        if debug:
-            batch_size = crops.size(0)
-            save_intermediate_results(list(range(batch_size)), crops, masks, outputs, frames, filenames,
-                                      os.path.join(model_folder, 'batch_{}'.format(batch_idx)))
-
-            if use_ul:
-                save_intermediate_results(list(range(batch_size)), crops_m, masks_bbox_m, outputs_m, frames, filenames,
-                                          os.path.join(model_folder, 'ul_batch_{}'.format(batch_idx)))
-
-                if pseudo_label.dim() == 4:
-                    pseudo_label = torch.unsqueeze(pseudo_label, dim=1)
-                save_intermediate_results(list(range(batch_size)), crops_m, pseudo_label, outputs_m, frames, filenames,
-                                          os.path.join(model_folder, 'ul_pseudo_batch_{}'.format(batch_idx)))
 
         batch_duration = time.time() - begin_t
 
