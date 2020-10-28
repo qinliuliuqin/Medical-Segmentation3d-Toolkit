@@ -218,6 +218,6 @@ class SegmentationDataset(Dataset):
         im = convert_image_to_tensor(images)
         seg = convert_image_to_tensor(seg)
         if seg_bbox is not None: seg_bbox = convert_image_to_tensor(seg_bbox)
-        else: seg_bbox = convert_image_to_tensor(seg)
+        else: seg_bbox = seg[:]
 
         return im, seg, seg_bbox, frame, case_name
