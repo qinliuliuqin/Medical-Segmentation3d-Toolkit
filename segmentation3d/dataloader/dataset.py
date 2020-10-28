@@ -202,10 +202,14 @@ class SegmentationDataset(Dataset):
 
         # get the bounding box mask for seg
         bbox_start, bbox_end = get_bounding_box(seg, None)
-        seg_bbox_npy = sitk.GetArrayFromImage(seg)
-        seg_bbox_npy[bbox_start[2]:bbox_end[2], bbox_start[1]:bbox_end[1], bbox_start[0]:bbox_end[0]] = 1
-        seg_bbox = sitk.GetImageFromArray(seg_bbox_npy)
-        seg_bbox.CopyInformation(seg)
+        if bbox_start is None or bbox_end is None:
+            print(case_name)
+            seg_bbox = None
+        else:
+            seg_bbox_npy = sitk.GetArrayFromImage(seg)
+            seg_bbox_npy[bbox_start[2]:bbox_end[2], bbox_start[1]:bbox_end[1], bbox_start[0]:bbox_end[0]] = 1
+            seg_bbox = sitk.GetImageFromArray(seg_bbox_npy)
+            seg_bbox.CopyInformation(seg)
 
         # image frame
         frame = get_image_frame(seg)
@@ -213,6 +217,7 @@ class SegmentationDataset(Dataset):
         # convert to tensors
         im = convert_image_to_tensor(images)
         seg = convert_image_to_tensor(seg)
-        seg_bbox = convert_image_to_tensor(seg_bbox)
+        if seg_bbox is not None: seg_bbox = convert_image_to_tensor(seg_bbox)
+        else: seg_bbox = convert_image_to_tensor(seg)
 
         return im, seg, seg_bbox, frame, case_name
