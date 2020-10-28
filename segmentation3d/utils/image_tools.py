@@ -477,6 +477,9 @@ def get_bounding_box(mask, selected_labels):
     selected_mask = sitk.GetImageFromArray(selected_mask_npy)
     selected_mask.CopyInformation(mask)
 
+    if selected_mask.GetPixelID() != 1:
+        selected_mask = sitk.Cast(selected_mask, 1)
+
     bbox_filter = sitk.LabelShapeStatisticsImageFilter()
     try:
         bbox_filter.Execute(selected_mask)

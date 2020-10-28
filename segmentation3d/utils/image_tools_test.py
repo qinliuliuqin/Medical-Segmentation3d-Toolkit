@@ -77,9 +77,11 @@ def test_pick_largest_connected_component():
 
 def test_get_bounding_box():
 
-  seg_path = '/mnt/projects/CT_Pancreas/label/label0001.nii.gz'
+  # seg_path = '/mnt/projects/CT_Pancreas/label/label0001.nii.gz'
+  seg_path = '/mnt/projects/CT_Pancreas/debug/contrast_seg/images_image0002.nii.gz_1.nii.gz'
   seg = sitk.ReadImage(seg_path)
 
+  print(seg.GetPixelID())
   bbox_start, bbox_end = get_bounding_box(seg, None)
   print(bbox_start, bbox_end)
 
