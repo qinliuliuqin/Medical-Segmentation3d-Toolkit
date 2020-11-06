@@ -112,11 +112,6 @@ def train(train_config_file):
 
         crops, masks, frames, filenames = data_iter.next()
 
-        if train_cfg.dataset.mixup:
-            crops_mixup, masks_mixup, _, _ = data_iter.next()
-            alpha = np.random.rand()
-            crops = alpha * crops + (1 - alpha) * crops_mixup
-
         if train_cfg.general.num_gpus > 0:
             crops, masks = crops.cuda(), masks.cuda()
 
@@ -126,12 +121,6 @@ def train(train_config_file):
         # network forward and backward
         outputs = net(crops)
         train_loss = loss_func(outputs, masks)
-
-        if train_cfg.dataset.mixup:
-            masks_mixup = masks_mixup.cuda()
-            train_loss_mixup = loss_func(outputs, masks_mixup)
-            train_loss = alpha * train_loss + (1 - alpha) * train_loss_mixup
-
         train_loss.backward()
 
         # update weights

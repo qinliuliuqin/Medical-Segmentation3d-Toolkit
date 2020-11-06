@@ -75,8 +75,6 @@ __C.dataset.random_translation = [15, 15, 15]
 # during training, the image spacing will be spacing * scale
 __C.dataset.random_scale = [0.9, 1.1]
 
-# mixup data augmentation
-__C.dataset.mixup = True
 
 ##################################
 # training loss
