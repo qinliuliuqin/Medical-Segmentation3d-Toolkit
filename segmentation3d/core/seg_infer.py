@@ -433,7 +433,12 @@ def segmentation(input_path, model_folder, output_folder, seg_name, gpu_id, retu
 
             start_voxel, end_voxel = get_bounding_box(mask, None)
 
-            print('Fine segmentation: ')
+            # compute bbox ratio
+            bbox_ratio = 100
+            for idx in range(3):
+                bbox_ratio *= (end_voxel[idx] - start_voxel[idx]) / mask.GetSize()[idx]
+
+            print('Fine segmentation (bbox ratio: {:.2f}%): '.format(bbox_ratio))
             mean_probs, mask = segmentation_volume(
                 models['fine_model'], models['infer_cfg'].fine, image, start_voxel, end_voxel, gpu_id > 0
             )
