@@ -15,7 +15,7 @@ from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_ser
 from segmentation3d.utils.file_io import load_config, readlines
 from segmentation3d.utils.model_io import get_checkpoint_folder
 from segmentation3d.utils.image_tools import resample, convert_image_to_tensor, convert_tensor_to_image, \
-    copy_image, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
+    add_image_region, image_partition_by_fixed_size, resample_spacing, add_image_value, pick_largest_connected_component, \
     remove_small_connected_component, get_bounding_box
 from segmentation3d.utils.normalizer import FixedNormalizer, AdaptiveNormalizer
 
@@ -317,7 +317,7 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
 
         voi_mean_probs = segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu)
         for idy in range(num_classes):
-            iso_mean_probs[idy] = copy_image(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
+            iso_mean_probs[idy] = add_image_region(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
 
         iso_partition_overlap_count = add_image_value(iso_partition_overlap_count, start_voxel, end_voxel, 1.0)
         print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
