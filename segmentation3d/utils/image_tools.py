@@ -441,7 +441,7 @@ def add_image_region(image, start_voxel, end_voxel, patch):
     for idx in range(3):
         start_voxel[idx] = int(start_voxel[idx])
         end_voxel[idx] = int(end_voxel[idx])
-        assert patch.shape[idx] == end_voxel[idx] - start_voxel[idx]
+        assert patch.GetSize()[idx] == end_voxel[idx] - start_voxel[idx]
 
     image_npy = sitk.GetArrayFromImage(image)
     patch_npy = sitk.GetArrayFromImage(patch)

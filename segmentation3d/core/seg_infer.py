@@ -332,6 +332,10 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
         padding_value = 1.0 if idx == 0 else 0.0
         mean_probs.append(resample(iso_mean_probs[idx], image, 'LINEAR', padding_value))
 
+    # debug only
+    for idx in range(num_classes):
+        sitk.WriteImage(iso_mean_probs[idx], '/shenlab/lab_stor6/qinliu/CT_Dental/results/seg_benchmark/org.mha/prob_{}.nii.gz'.format(idx), True)
+
     # get segmentation mask from the mean_probability maps
     mean_probs_tensor = convert_image_to_tensor(mean_probs)
     _, mask = mean_probs_tensor.max(0)

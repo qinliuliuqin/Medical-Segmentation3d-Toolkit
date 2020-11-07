@@ -11,6 +11,8 @@ def main():
                        '2. A text file containing paths of all testing images\n'\
                        '3. A folder containing all testing images\n'
 
+    default_input = '/shenlab/lab_stor6/qinliu/CT_Dental/datasets/segmentation/test.txt'
+    #default_input = '/shenlab/lab_stor6/projects/CT_Dental/data/case_67_cbct_patient/org.mha'
     #default_input = '/shenlab/lab_stor6/projects/CT_Dental/ThreeLabels/datasets/test.txt'
     #default_input = '/shenlab/lab_stor6/deqiang/Pre_Post_Facial_Data-Ma/original_images'
     #default_input = '/shenlab/lab_stor6/deqiang/CMF_CBCT_Unlabeled/KCK068526/sub_KCK068526_origin.nii.gz'
@@ -19,9 +21,9 @@ def main():
     #default_input = '/shenlab/lab_stor6/projects/CT_Dental/SH_no_teeth_label/sub_SH0032HX_origin.nii.gz'
     #default_input = '/shenlab/lab_stor4/xychen/original_based_heatmap_prediction/updated_data/NIH_pancreas/images/'
     #default_input = '/shenlab/lab_stor6/projects/CT_Dental/results/CB_no_teeth_label_10072020/data'
-    default_input = '/shenlab/lab_stor6/projects/CT_Dental/test_data/Pre_Post_Facial_Data/22_pairs_09212020'
-    #default_model = '/home/qinliu19/projects/Model-Zoo/Dental/segmentation/model_0429_2020' # bones segmentation
-    default_model = '/home/qinliu19/projects/Model-Zoo/Dental/segmentation/model_0609_2020' # bones+soft-tissue segmentation
+    #default_input = '/shenlab/lab_stor6/projects/CT_Dental/test_data/Pre_Post_Facial_Data/22_pairs_09212020'
+    default_model = '/home/qinliu19/projects/Model-Zoo/Dental/segmentation/model_0429_2020' # bones segmentation
+    #default_model = '/home/qinliu19/projects/Model-Zoo/Dental/segmentation/model_0609_2020' # bones+soft-tissue segmentation
     #default_model = '/home/qinliu19/projects/Model-Zoo/Dental/segmentation/model_0803_2020'
     #default_model = '/shenlab/lab_stor6/qinliu/CT_Pancreas/model/model_0908_2020/'
     #default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/Pre_Post_Facial_Data-Ma_3labels'
@@ -30,9 +32,10 @@ def main():
     #default_output = '/shenlab/lab_stor6/projects/CT_Dental/results/SH_no_teeth_label'
     #default_output = '/shenlab/lab_stor6/qinliu/CT_Pancreas/results/model_0908_2020/'
     #default_output = '/shenlab/lab_stor6/projects/CT_Dental/results/CB_no_teeth_label_10072020/teeth'
-    default_output = '/shenlab/lab_stor6/projects/CT_Dental/results/22_pairs_09212020/seg_bones_plus_softtissue'
+    #default_output = '/shenlab/lab_stor6/projects/CT_Dental/results/22_pairs_09212020/seg_bones_plus_softtissue'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/seg_benchmark'
     default_seg_name = 'seg.mha'
-    default_gpu_id =4
+    default_gpu_id =7
 
     parser = argparse.ArgumentParser(description=long_description)
     parser.add_argument('-i', '--input', default=default_input, help='input folder/file for intensity images')
