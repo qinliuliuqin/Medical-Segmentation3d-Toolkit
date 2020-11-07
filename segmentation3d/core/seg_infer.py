@@ -317,7 +317,7 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
 
         voi_mean_probs = segmentation_voi(model, iso_image, start_voxel, end_voxel, use_gpu)
         for idy in range(num_classes):
-            iso_mean_probs[idy] = add_image_region(voi_mean_probs[idy], start_voxel, end_voxel, iso_mean_probs[idy])
+            iso_mean_probs[idy] = add_image_region(iso_mean_probs[idy], start_voxel, end_voxel, voi_mean_probs[idy])
 
         iso_partition_overlap_count = add_image_value(iso_partition_overlap_count, start_voxel, end_voxel, 1.0)
         print('{:0.2f}%'.format((idx + 1) / len(start_voxels) * 100))
