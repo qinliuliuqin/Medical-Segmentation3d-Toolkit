@@ -432,6 +432,26 @@ def remove_small_connected_component(mask, labels, threshold):
     return sitk.Cast(largest_cc_multi, mask.GetPixelID())
 
 
+def add_image_region(source, start_voxel, end_voxel, target):
+    """ Add two images in the given region.
+    """
+    assert isinstance(source, sitk.Image)
+    assert isinstance(target, sitk.Image)
+
+    for idx in range(3):
+        start_voxel[idx] = int(start_voxel[idx])
+        end_voxel[idx] = int(end_voxel[idx])
+
+    source_npy = sitk.GetArrayFromImage(source)
+    target_npy = sitk.GetArrayFromImage(target)
+    target_npy[start_voxel[2]:end_voxel[2], start_voxel[1]:end_voxel[1], start_voxel[0]:end_voxel[0]] += \
+        source_npy[start_voxel[2]:end_voxel[2], start_voxel[1]:end_voxel[1], start_voxel[0]:end_voxel[0]]
+    added_target_image = sitk.GetImageFromArray(target_npy)
+    added_target_image.CopyInformation(target)
+
+    return added_target_image
+
+
 def add_image_value(image, start_voxel, end_voxel, value):
     """ Add value to the input image in a given volume.
     """
