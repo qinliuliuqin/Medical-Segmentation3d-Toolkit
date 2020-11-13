@@ -33,7 +33,7 @@ def main():
     #default_output = '/shenlab/lab_stor6/qinliu/CT_Pancreas/results/model_0908_2020/'
     #default_output = '/shenlab/lab_stor6/projects/CT_Dental/results/CB_no_teeth_label_10072020/teeth'
     #default_output = '/shenlab/lab_stor6/projects/CT_Dental/results/22_pairs_09212020/seg_bones_plus_softtissue'
-    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/seg_benchmark'
+    default_output = '/shenlab/lab_stor6/qinliu/CT_Dental/results/seg_benchmark4'
     default_seg_name = 'seg.mha'
     default_gpu_id =7
 
