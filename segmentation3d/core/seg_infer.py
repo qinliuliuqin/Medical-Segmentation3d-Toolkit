@@ -1,15 +1,5 @@
-from collections import OrderedDict
-import copy
-import glob
-import importlib
-import torch.nn as nn
-import os
-import pandas as pd
-import SimpleITK as sitk
-import time
-import torch
-import numpy as np
-from easydict import EasyDict as edict
+from collections import OrderedDict import copy import glob import importlib import torch.nn as nn import os import pandas as pd import SimpleITK as sitk import time import torch import numpy as 
+np from easydict import EasyDict as edict
 
 from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_series, dicom_tags_dict
 from segmentation3d.utils.file_io import load_config, readlines
@@ -331,10 +321,6 @@ def segmentation_volume(model, cfg, image, bbox_start_voxel, bbox_end_voxel, use
     for idx in range(num_classes):
         padding_value = 1.0 if idx == 0 else 0.0
         mean_probs.append(resample(iso_mean_probs[idx], image, 'LINEAR', padding_value))
-
-    # debug only
-    for idx in range(num_classes):
-        sitk.WriteImage(iso_mean_probs[idx], '/shenlab/lab_stor6/qinliu/CT_Dental/results/seg_benchmark/org.mha/prob_{}.nii.gz'.format(idx), True)
 
     # get segmentation mask from the mean_probability maps
     mean_probs_tensor = convert_image_to_tensor(mean_probs)
