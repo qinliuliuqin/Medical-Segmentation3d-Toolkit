@@ -1,5 +1,15 @@
-from collections import OrderedDict import copy import glob import importlib import torch.nn as nn import os import pandas as pd import SimpleITK as sitk import time import torch import numpy as 
-np from easydict import EasyDict as edict
+from collections import OrderedDict
+import copy
+import glob
+import importlib
+import torch.nn as nn
+import os
+import pandas as pd
+import SimpleITK as sitk
+import time
+import torch
+import numpy as np
+from easydict import EasyDict as edict
 
 from segmentation3d.utils.dicom_helper import read_dicom_series, write_dicom_series, dicom_tags_dict
 from segmentation3d.utils.file_io import load_config, readlines
